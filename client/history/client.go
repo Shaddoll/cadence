@@ -21,11 +21,17 @@
 package history
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
+	"encoding/gob"
 	"sync"
 	"time"
 
 	"go.uber.org/yarpc"
+
+	protobuf "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/runtime/protoimpl"
 
 	"github.com/uber/cadence/common"
 	"github.com/uber/cadence/common/dynamicconfig"
@@ -34,6 +40,7 @@ import (
 	"github.com/uber/cadence/common/log/tag"
 	"github.com/uber/cadence/common/rpc"
 	"github.com/uber/cadence/common/types"
+	"github.com/uber/cadence/common/types/mapper/proto"
 )
 
 var _ Client = (*clientImpl)(nil)
@@ -811,6 +818,17 @@ func (c *clientImpl) QueryWorkflow(
 	return response, nil
 }
 
+func getGRPCResponseSize(val interface{}) (int, error) {
+
+	var buff bytes.Buffer
+	enc := gob.NewEncoder(&buff)
+	err := enc.Encode(val)
+	if err != nil {
+		return 0, err
+	}
+	return binary.Size(buff.Bytes()), nil
+}
+
 func (c *clientImpl) GetReplicationMessages(
 	ctx context.Context,
 	request *types.GetReplicationMessagesRequest,
@@ -878,6 +896,7 @@ func (c *clientImpl) GetReplicationMessages(
 
 	for resp := range respChan {
 		// return partial response if the response size exceeded supported max size
+		c.logger.Warn("grpc single limit", tag.QueueLevel(protobuf.Size(protoimpl.X.ProtoMessageV2Of(proto.FromHistoryGetReplicationMessagesResponse(resp.response)))), tag.PreviousQueueLevel(resp.size), tag.TaskType(proto.FromHistoryGetReplicationMessagesResponse(resp.response).Size()))
 		responseTotalSize += resp.size
 		if responseTotalSize >= c.rpcMaxSizeInBytes() {
 			return response, nil
@@ -886,6 +905,7 @@ func (c *clientImpl) GetReplicationMessages(
 		for shardID, tasks := range resp.response.GetMessagesByShard() {
 			response.MessagesByShard[shardID] = tasks
 		}
+		c.logger.Warn("grpc limit", tag.QueueLevel(protobuf.Size(protoimpl.X.ProtoMessageV2Of(proto.FromAdminGetReplicationMessagesResponse(response)))), tag.PreviousQueueLevel(responseTotalSize), tag.TaskType(proto.FromAdminGetReplicationMessagesResponse(response).Size()))
 	}
 	return response, nil
 }
