@@ -23,6 +23,8 @@ package backoff
 import (
 	"sync"
 	"time"
+
+	"github.com/uber/cadence/common/types"
 )
 
 type (
@@ -120,8 +122,11 @@ func Retry(operation Operation, policy RetryPolicy, isRetryable IsRetryable) err
 			}
 			return err
 		}
-
-		time.Sleep(next)
+		if isTransientError(err) {
+			time.Sleep(time.Second)
+		} else {
+			time.Sleep(next)
+		}
 	}
 }
 
@@ -136,4 +141,13 @@ func IgnoreErrors(errorsToExclude []error) func(error) bool {
 
 		return true
 	}
+}
+
+func isTransientError(err error) bool {
+	switch err.(type) {
+	case *types.ServiceBusyError:
+		return true
+	}
+
+	return false
 }
