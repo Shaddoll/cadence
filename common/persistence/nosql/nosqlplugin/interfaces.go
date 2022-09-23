@@ -32,8 +32,8 @@ import (
 type (
 	// Plugin defines the interface for any NoSQL database that needs to implement
 	Plugin interface {
-		CreateDB(cfg *config.NoSQL, logger log.Logger) (DB, error)
-		CreateAdminDB(cfg *config.NoSQL, logger log.Logger) (AdminDB, error)
+		CreateDB(cfg *config.NoSQL, logger log.Logger, dc *persistence.DynamicConfiguration) (DB, error)
+		CreateAdminDB(cfg *config.NoSQL, logger log.Logger, dc *persistence.DynamicConfiguration) (AdminDB, error)
 	}
 
 	// AdminDB is for tooling and testing
