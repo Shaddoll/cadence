@@ -7157,6 +7157,7 @@ type WorkflowExecutionInfo struct {
 	TaskList          string                        `json:"taskList,omitempty"`
 	IsCron            bool                          `json:"isCron,omitempty"`
 	UpdateTime        *int64                        `json:"updateTime,omitempty"`
+	PartitionConfig   map[string]string
 }
 
 // GetExecution is an internal getter (TBD...)
@@ -7223,6 +7224,14 @@ func (v *WorkflowExecutionInfo) GetSearchAttributes() (o *SearchAttributes) {
 	return
 }
 
+// GetPartitionConfig is an internal getter (TBD...)
+func (v *WorkflowExecutionInfo) GetPartitionConfig() (o map[string]string) {
+	if v != nil && v.PartitionConfig != nil {
+		return v.PartitionConfig
+	}
+	return
+}
+
 // WorkflowExecutionSignaledEventAttributes is an internal type (TBD...)
 type WorkflowExecutionSignaledEventAttributes struct {
 	SignalName string `json:"signalName,omitempty"`
@@ -7284,6 +7293,7 @@ type WorkflowExecutionStartedEventAttributes struct {
 	PrevAutoResetPoints                 *ResetPoints            `json:"prevAutoResetPoints,omitempty"`
 	Header                              *Header                 `json:"header,omitempty"`
 	JitterStartSeconds                  *int32                  `json:"jitterStartSeconds,omitempty"`
+	PartitionConfig                     map[string]string
 }
 
 // GetParentWorkflowDomain is an internal getter (TBD...)
@@ -7409,6 +7419,14 @@ func (v *WorkflowExecutionStartedEventAttributes) GetSearchAttributes() (o *Sear
 func (v *WorkflowExecutionStartedEventAttributes) GetPrevAutoResetPoints() (o *ResetPoints) {
 	if v != nil && v.PrevAutoResetPoints != nil {
 		return v.PrevAutoResetPoints
+	}
+	return
+}
+
+// GetPartitionConfig is an internal getter (TBD...)
+func (v *WorkflowExecutionStartedEventAttributes) GetPartitionConfig() (o map[string]string) {
+	if v != nil && v.PartitionConfig != nil {
+		return v.PartitionConfig
 	}
 	return
 }
