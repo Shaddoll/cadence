@@ -40,7 +40,6 @@ func FromMatchingAddActivityTaskRequest(t *types.AddActivityTaskRequest) *matchi
 		Source:                   FromTaskSource(t.Source),
 		ForwardedFrom:            t.ForwardedFrom,
 		ActivityTaskDispatchInfo: FromActivityTaskDispatchInfo(t.ActivityTaskDispatchInfo),
-		PartitionConfig:          t.PartitionConfig,
 	}
 }
 
@@ -58,7 +57,6 @@ func ToMatchingAddActivityTaskRequest(t *matchingv1.AddActivityTaskRequest) *typ
 		Source:                        ToTaskSource(t.Source),
 		ForwardedFrom:                 t.ForwardedFrom,
 		ActivityTaskDispatchInfo:      ToActivityTaskDispatchInfo(t.ActivityTaskDispatchInfo),
-		PartitionConfig:               t.PartitionConfig,
 	}
 }
 
@@ -74,7 +72,6 @@ func FromMatchingAddDecisionTaskRequest(t *types.AddDecisionTaskRequest) *matchi
 		ScheduleToStartTimeout: secondsToDuration(t.ScheduleToStartTimeoutSeconds),
 		Source:                 FromTaskSource(t.Source),
 		ForwardedFrom:          t.ForwardedFrom,
-		PartitionConfig:        t.PartitionConfig,
 	}
 }
 
@@ -90,7 +87,6 @@ func ToMatchingAddDecisionTaskRequest(t *matchingv1.AddDecisionTaskRequest) *typ
 		ScheduleToStartTimeoutSeconds: durationToSeconds(t.ScheduleToStartTimeout),
 		Source:                        ToTaskSource(t.Source),
 		ForwardedFrom:                 t.ForwardedFrom,
-		PartitionConfig:               t.PartitionConfig,
 	}
 }
 
@@ -303,11 +299,10 @@ func FromMatchingPollForActivityTaskRequest(t *types.MatchingPollForActivityTask
 		return nil
 	}
 	return &matchingv1.PollForActivityTaskRequest{
-		Request:        FromPollForActivityTaskRequest(t.PollRequest),
-		DomainId:       t.DomainUUID,
-		PollerId:       t.PollerID,
-		ForwardedFrom:  t.ForwardedFrom,
-		IsolationGroup: t.IsolationGroup,
+		Request:       FromPollForActivityTaskRequest(t.PollRequest),
+		DomainId:      t.DomainUUID,
+		PollerId:      t.PollerID,
+		ForwardedFrom: t.ForwardedFrom,
 	}
 }
 
@@ -316,11 +311,10 @@ func ToMatchingPollForActivityTaskRequest(t *matchingv1.PollForActivityTaskReque
 		return nil
 	}
 	return &types.MatchingPollForActivityTaskRequest{
-		PollRequest:    ToPollForActivityTaskRequest(t.Request),
-		DomainUUID:     t.DomainId,
-		PollerID:       t.PollerId,
-		ForwardedFrom:  t.ForwardedFrom,
-		IsolationGroup: t.IsolationGroup,
+		PollRequest:   ToPollForActivityTaskRequest(t.Request),
+		DomainUUID:    t.DomainId,
+		PollerID:      t.PollerId,
+		ForwardedFrom: t.ForwardedFrom,
 	}
 }
 
@@ -377,11 +371,10 @@ func FromMatchingPollForDecisionTaskRequest(t *types.MatchingPollForDecisionTask
 		return nil
 	}
 	return &matchingv1.PollForDecisionTaskRequest{
-		Request:        FromPollForDecisionTaskRequest(t.PollRequest),
-		DomainId:       t.DomainUUID,
-		PollerId:       t.PollerID,
-		ForwardedFrom:  t.ForwardedFrom,
-		IsolationGroup: t.IsolationGroup,
+		Request:       FromPollForDecisionTaskRequest(t.PollRequest),
+		DomainId:      t.DomainUUID,
+		PollerId:      t.PollerID,
+		ForwardedFrom: t.ForwardedFrom,
 	}
 }
 
@@ -390,11 +383,10 @@ func ToMatchingPollForDecisionTaskRequest(t *matchingv1.PollForDecisionTaskReque
 		return nil
 	}
 	return &types.MatchingPollForDecisionTaskRequest{
-		PollRequest:    ToPollForDecisionTaskRequest(t.Request),
-		DomainUUID:     t.DomainId,
-		PollerID:       t.PollerId,
-		ForwardedFrom:  t.ForwardedFrom,
-		IsolationGroup: t.IsolationGroup,
+		PollRequest:   ToPollForDecisionTaskRequest(t.Request),
+		DomainUUID:    t.DomainId,
+		PollerID:      t.PollerId,
+		ForwardedFrom: t.ForwardedFrom,
 	}
 }
 

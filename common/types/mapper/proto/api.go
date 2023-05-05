@@ -4690,7 +4690,6 @@ func FromWorkflowExecutionInfo(t *types.WorkflowExecutionInfo) *apiv1.WorkflowEx
 		SearchAttributes:    FromSearchAttributes(t.SearchAttributes),
 		AutoResetPoints:     FromResetPoints(t.AutoResetPoints),
 		TaskList:            t.TaskList,
-		PartitionConfig:     t.PartitionConfig,
 	}
 }
 
@@ -4714,7 +4713,6 @@ func ToWorkflowExecutionInfo(t *apiv1.WorkflowExecutionInfo) *types.WorkflowExec
 		SearchAttributes:  ToSearchAttributes(t.SearchAttributes),
 		AutoResetPoints:   ToResetPoints(t.AutoResetPoints),
 		TaskList:          t.TaskList,
-		PartitionConfig:   t.PartitionConfig,
 	}
 }
 
@@ -4769,7 +4767,6 @@ func FromWorkflowExecutionStartedEventAttributes(t *types.WorkflowExecutionStart
 		SearchAttributes:             FromSearchAttributes(t.SearchAttributes),
 		PrevAutoResetPoints:          FromResetPoints(t.PrevAutoResetPoints),
 		Header:                       FromHeader(t.Header),
-		PartitionConfig:              t.PartitionConfig,
 	}
 }
 
@@ -4805,7 +4802,6 @@ func ToWorkflowExecutionStartedEventAttributes(t *apiv1.WorkflowExecutionStarted
 		SearchAttributes:                    ToSearchAttributes(t.SearchAttributes),
 		PrevAutoResetPoints:                 ToResetPoints(t.PrevAutoResetPoints),
 		Header:                              ToHeader(t.Header),
-		PartitionConfig:                     t.PartitionConfig,
 	}
 }
 

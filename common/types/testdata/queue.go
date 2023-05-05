@@ -37,7 +37,6 @@ var (
 		InitiatedEventID:         EventID1,
 		InitiatedEventAttributes: &StartChildWorkflowExecutionInitiatedEventAttributes,
 		TargetRunID:              common.StringPtr(RunID1),
-		PartitionConfig:          PartitionConfig,
 	}
 	CrossClusterStartChildExecutionResponseAttributes = types.CrossClusterStartChildExecutionResponseAttributes{
 		RunID: RunID,

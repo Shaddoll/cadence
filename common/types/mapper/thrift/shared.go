@@ -6270,7 +6270,6 @@ func FromWorkflowExecutionInfo(t *types.WorkflowExecutionInfo) *shared.WorkflowE
 		TaskList:         &t.TaskList,
 		IsCron:           &t.IsCron,
 		UpdateTime:       t.UpdateTime,
-		PartitionConfig:  t.PartitionConfig,
 	}
 }
 
@@ -6295,7 +6294,6 @@ func ToWorkflowExecutionInfo(t *shared.WorkflowExecutionInfo) *types.WorkflowExe
 		TaskList:         t.GetTaskList(),
 		IsCron:           t.GetIsCron(),
 		UpdateTime:       t.UpdateTime,
-		PartitionConfig:  t.PartitionConfig,
 	}
 }
 
@@ -6356,7 +6354,6 @@ func FromWorkflowExecutionStartedEventAttributes(t *types.WorkflowExecutionStart
 		SearchAttributes:                    FromSearchAttributes(t.SearchAttributes),
 		PrevAutoResetPoints:                 FromResetPoints(t.PrevAutoResetPoints),
 		Header:                              FromHeader(t.Header),
-		PartitionConfig:                     t.PartitionConfig,
 	}
 }
 
@@ -6393,7 +6390,6 @@ func ToWorkflowExecutionStartedEventAttributes(t *shared.WorkflowExecutionStarte
 		SearchAttributes:                    ToSearchAttributes(t.SearchAttributes),
 		PrevAutoResetPoints:                 ToResetPoints(t.PrevAutoResetPoints),
 		Header:                              ToHeader(t.Header),
-		PartitionConfig:                     t.PartitionConfig,
 	}
 }
 
@@ -7244,7 +7240,6 @@ func FromCrossClusterStartChildExecutionRequestAttributes(t *types.CrossClusterS
 		InitiatedEventID:         &t.InitiatedEventID,
 		InitiatedEventAttributes: FromStartChildWorkflowExecutionInitiatedEventAttributes(t.InitiatedEventAttributes),
 		TargetRunID:              t.TargetRunID,
-		PartitionConfig:          t.PartitionConfig,
 	}
 }
 
@@ -7259,7 +7254,6 @@ func ToCrossClusterStartChildExecutionRequestAttributes(t *shared.CrossClusterSt
 		InitiatedEventID:         t.GetInitiatedEventID(),
 		InitiatedEventAttributes: ToStartChildWorkflowExecutionInitiatedEventAttributes(t.InitiatedEventAttributes),
 		TargetRunID:              t.TargetRunID,
-		PartitionConfig:          t.PartitionConfig,
 	}
 }
 
