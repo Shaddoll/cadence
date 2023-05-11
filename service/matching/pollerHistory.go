@@ -118,7 +118,7 @@ func (pollers *pollerHistory) getPollerIsolationGroups(earliestAccessTime time.T
 			}
 		}
 	}
-	var result []string
+	result := make([]string, 0, len(groupSet))
 	for k := range groupSet {
 		result = append(result, k)
 	}
