@@ -509,6 +509,7 @@ pollLoop:
 				)
 				task.finish(nil)
 			default:
+				e.logger.Error("failed to record decision started event", tag.Dynamic("source", task.source.String()), tag.TaskID(task.event.TaskID), tag.WorkflowID(task.event.WorkflowID), tag.WorkflowRunID(task.event.RunID))
 				task.finish(err)
 			}
 

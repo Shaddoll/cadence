@@ -156,7 +156,9 @@ dispatchLoop:
 				task := newInternalTask(taskInfo, tr.completeTask, types.TaskSourceDbBacklog, "", false, nil, isolationGroup)
 				dispatchCtx, cancel := tr.newDispatchContext(isolationGroup)
 				timerScope := tr.scope.StartTimer(metrics.AsyncMatchLatencyPerTaskList)
+				tr.logger.Info("dispatching task", tag.TaskID(taskInfo.TaskID), tag.WorkflowID(taskInfo.WorkflowID), tag.WorkflowRunID(taskInfo.RunID))
 				err = tr.dispatchTask(dispatchCtx, task)
+				tr.logger.Info("dispatched task", tag.TaskID(taskInfo.TaskID), tag.WorkflowID(taskInfo.WorkflowID), tag.WorkflowRunID(taskInfo.RunID))
 				timerScope.Stop()
 				cancel()
 				if err == nil {
