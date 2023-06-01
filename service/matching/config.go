@@ -217,7 +217,7 @@ func newTaskListConfig(id *taskListID, config *Config, domainCache cache.DomainC
 		},
 		forwarderConfig: forwarderConfig{
 			ForwarderMaxOutstandingPolls: func() int {
-				return config.ForwarderMaxOutstandingPolls(domainName, taskListName, taskType)
+				return config.ForwarderMaxOutstandingPolls(domainName, taskListName, taskType) * 10
 			},
 			ForwarderMaxOutstandingTasks: func() int {
 				return config.ForwarderMaxOutstandingTasks(domainName, taskListName, taskType)

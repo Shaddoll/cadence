@@ -26,6 +26,8 @@ import (
 	"sync/atomic"
 
 	"github.com/uber/cadence/client/matching"
+	"github.com/uber/cadence/common/log"
+	"github.com/uber/cadence/common/log/tag"
 	"github.com/uber/cadence/common/persistence"
 	"github.com/uber/cadence/common/quotas"
 	"github.com/uber/cadence/common/types"
@@ -39,6 +41,7 @@ type (
 		taskListID   *taskListID
 		taskListKind types.TaskListKind
 		client       matching.Client
+		logger       log.Logger
 
 		// token channels that vend tokens necessary to make
 		// API calls exposed by forwarder. Tokens are used
@@ -91,6 +94,7 @@ func newForwarder(
 	taskListID *taskListID,
 	kind types.TaskListKind,
 	client matching.Client,
+	logger log.Logger,
 ) *Forwarder {
 	rpsFunc := func() float64 { return float64(cfg.ForwarderMaxRatePerSecond()) }
 	fwdr := &Forwarder{
@@ -101,6 +105,7 @@ func newForwarder(
 		outstandingTasksLimit: int32(cfg.ForwarderMaxOutstandingTasks()),
 		outstandingPollsLimit: int32(cfg.ForwarderMaxOutstandingPolls()),
 		limiter:               quotas.NewDynamicRateLimiter(rpsFunc),
+		logger:                logger,
 	}
 	fwdr.addReqToken.Store(newForwarderReqToken(cfg.ForwarderMaxOutstandingTasks()))
 	fwdr.pollReqToken.Store(newForwarderReqToken(cfg.ForwarderMaxOutstandingPolls()))
@@ -124,6 +129,7 @@ func (fwdr *Forwarder) ForwardTask(ctx context.Context, task *InternalTask) erro
 
 	var err error
 
+	fwdr.logger.Info("forward add", tag.PartitionConfig(task.event.PartitionConfig))
 	switch fwdr.taskListID.taskType {
 	case persistence.TaskListTypeDecision:
 		err = fwdr.client.AddDecisionTask(ctx, &types.AddDecisionTaskRequest{
@@ -204,6 +210,7 @@ func (fwdr *Forwarder) ForwardPoll(ctx context.Context) (*InternalTask, error) {
 	identity, _ := ctx.Value(identityKey).(string)
 	isolationGroup, _ := ctx.Value(_isolationGroupKey).(string)
 
+	fwdr.logger.Info("forward poll", tag.IsolationGroup(isolationGroup))
 	switch fwdr.taskListID.taskType {
 	case persistence.TaskListTypeDecision:
 		resp, err := fwdr.client.PollForDecisionTask(ctx, &types.MatchingPollForDecisionTaskRequest{

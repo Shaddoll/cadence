@@ -191,7 +191,7 @@ func newTaskListManager(
 	tlMgr.taskReader = newTaskReader(tlMgr)
 	var fwdr *Forwarder
 	if tlMgr.isFowardingAllowed(taskList, *taskListKind) {
-		fwdr = newForwarder(&taskListConfig.forwarderConfig, taskList, *taskListKind, e.matchingClient)
+		fwdr = newForwarder(&taskListConfig.forwarderConfig, taskList, *taskListKind, e.matchingClient, e.logger.WithTags(tag.WorkflowDomainName(domainName), tag.WorkflowTaskListName(taskList.name), tag.WorkflowTaskListType(taskList.taskType)))
 	}
 	var isolationGroups []string
 	if tlMgr.isIsolationMatcherEnabled() {
@@ -406,6 +406,7 @@ func (c *taskListManagerImpl) getTask(ctx context.Context, maxDispatchPerSecond 
 	}
 
 	if c.isIsolationMatcherEnabled() {
+		c.logger.Info("poll task", tag.IsolationGroup(isolationGroup))
 		return c.matcher.Poll(childCtx, isolationGroup)
 	}
 	return c.matcher.Poll(childCtx, "")

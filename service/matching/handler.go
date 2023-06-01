@@ -30,6 +30,7 @@ import (
 	"github.com/uber/cadence/common"
 	"github.com/uber/cadence/common/cache"
 	"github.com/uber/cadence/common/log"
+	"github.com/uber/cadence/common/log/tag"
 	"github.com/uber/cadence/common/metrics"
 	"github.com/uber/cadence/common/quotas"
 	"github.com/uber/cadence/common/types"
@@ -241,6 +242,7 @@ func (h *handlerImpl) PollForActivityTask(
 	if request.GetForwardedFrom() != "" {
 		hCtx.scope.IncCounter(metrics.ForwardedPerTaskListCounter)
 	}
+	hCtx.logger.Info("receive poll", tag.Dynamic("forward-from", request.GetForwardedFrom()), tag.IsolationGroup(request.GetIsolationGroup()))
 
 	if ok := h.workerRateLimiter.Allow(quotas.Info{Domain: domainName}); !ok {
 		return nil, hCtx.handleErr(errMatchingHostThrottle)
@@ -278,6 +280,7 @@ func (h *handlerImpl) PollForDecisionTask(
 	if request.GetForwardedFrom() != "" {
 		hCtx.scope.IncCounter(metrics.ForwardedPerTaskListCounter)
 	}
+	hCtx.logger.Info("receive poll", tag.Dynamic("forward-from", request.GetForwardedFrom()), tag.IsolationGroup(request.GetIsolationGroup()))
 
 	if ok := h.workerRateLimiter.Allow(quotas.Info{Domain: domainName}); !ok {
 		return nil, hCtx.handleErr(errMatchingHostThrottle)
