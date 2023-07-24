@@ -131,6 +131,9 @@ func (e *taskExecutorImpl) handleActivityTask(
 		LastWorkerIdentity: attr.LastWorkerIdentity,
 		VersionHistory:     attr.GetVersionHistory(),
 	}
+	if attr.GetVersionHistory() == nil {
+		e.logger.Error("empty version history", tag.WorkflowDomainID(attr.DomainID), tag.WorkflowID(attr.WorkflowID), tag.WorkflowRunID(attr.RunID))
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), replicationTimeout)
 	defer cancel()
 
