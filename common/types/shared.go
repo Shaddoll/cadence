@@ -7935,6 +7935,14 @@ func (v *CrossClusterStartChildExecutionResponseAttributes) GetRunID() (o string
 	return
 }
 
+// GetTargetRunID is an internal getter (TBD...)
+func (v *CrossClusterStartChildExecutionRequestAttributes) GetPartitionConfig() (o map[string]string) {
+	if v != nil && v.PartitionConfig != nil {
+		return v.PartitionConfig
+	}
+	return
+}
+
 // CrossClusterCancelExecutionRequestAttributes is an internal type (TBD...)
 type CrossClusterCancelExecutionRequestAttributes struct {
 	TargetDomainID    string `json:"targetDomainID,omitempty"`
