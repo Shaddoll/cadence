@@ -1,5 +1,6 @@
 ARG TARGET=server
 
+
 # Can be used in case a proxy is necessary
 ARG GOPROXY
 
