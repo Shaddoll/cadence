@@ -211,6 +211,26 @@ func StartWorkflow(c *cli.Context) {
 	startWorkflowHelper(c, false)
 }
 
+func StartWorkflowAsync(c *cli.Context) {
+	serviceClient := cFactory.ServerFrontendClient(c)
+
+	startRequest := constructStartWorkflowRequest(c)
+
+	startFn := func() {
+		tcCtx, cancel := newContext(c)
+		defer cancel()
+		_, err := serviceClient.StartWorkflowExecutionAsync(tcCtx, &types.StartWorkflowExecutionAsyncRequest{
+			StartWorkflowExecutionRequest: startRequest,
+		})
+
+		if err != nil {
+			ErrorAndExit("Failed to create workflow.", err)
+		}
+	}
+
+	startFn()
+}
+
 // RunWorkflow starts a new workflow execution and print workflow progress and result
 func RunWorkflow(c *cli.Context) {
 	startWorkflowHelper(c, true)

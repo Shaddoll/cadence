@@ -72,6 +72,14 @@ func newWorkflowCommands() []cli.Command {
 			},
 		},
 		{
+			Name:  "startasync",
+			Usage: "start a new workflow execution",
+			Flags: getFlagsForStart(),
+			Action: func(c *cli.Context) {
+				StartWorkflowAsync(c)
+			},
+		},
+		{
 			Name:  "run",
 			Usage: "start a new workflow execution and get workflow progress",
 			Flags: getFlagsForRun(),
