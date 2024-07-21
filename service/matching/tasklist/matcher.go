@@ -217,9 +217,11 @@ func (tm *TaskMatcher) OfferQuery(ctx context.Context, task *InternalTask) (*typ
 // MustOffer blocks until a consumer is found to handle this task
 // Returns error only when context is canceled, expired or the ratelimit is set to zero (allow nothing)
 func (tm *TaskMatcher) MustOffer(ctx context.Context, task *InternalTask) error {
+	startT := time.Now()
 	if err := tm.ratelimit(ctx); err != nil {
 		return fmt.Errorf("rate limit error dispatching: %w", err)
 	}
+	tm.scope.RecordTimer(metrics.AsyncRatelimitWaitLatencyPerTaskList, time.Since(startT))
 
 	// attempt a match with local poller first. When that
 	// doesn't succeed, try both local match and remote match

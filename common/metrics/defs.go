@@ -2552,6 +2552,7 @@ const (
 	TaskLagPerTaskListGauge
 	TaskBacklogPerTaskListGauge
 	TaskCountPerTaskListGauge
+	AsyncRatelimitWaitLatencyPerTaskList
 
 	NumMatchingMetrics
 )
@@ -3206,6 +3207,7 @@ var MetricDefs = map[ServiceIdx]map[int]metricDefinition{
 		TaskLagPerTaskListGauge:                       {metricName: "task_lag_per_tl", metricType: Gauge},
 		TaskBacklogPerTaskListGauge:                   {metricName: "task_backlog_per_tl", metricType: Gauge},
 		TaskCountPerTaskListGauge:                     {metricName: "task_count_per_tl", metricType: Gauge},
+		AsyncRatelimitWaitLatencyPerTaskList:          {metricName: "async_rl_wait_latency_per_tl", metricType: Timer},
 	},
 	Worker: {
 		ReplicatorMessages:                            {metricName: "replicator_messages"},
