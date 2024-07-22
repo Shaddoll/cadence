@@ -196,7 +196,7 @@ func NewManager(
 	if tlMgr.isFowardingAllowed(taskList, *taskListKind) {
 		fwdr = newForwarder(&taskListConfig.ForwarderConfig, taskList, *taskListKind, matchingClient, isolationGroups)
 	}
-	tlMgr.matcher = newTaskMatcher(taskListConfig, fwdr, tlMgr.scope, isolationGroups, tlMgr.logger)
+	tlMgr.matcher = newTaskMatcher(taskListConfig, fwdr, tlMgr.scope, isolationGroups, tlMgr.logger, tlMgr.timeSource)
 	tlMgr.taskWriter = newTaskWriter(tlMgr)
 	tlMgr.taskReader = newTaskReader(tlMgr, isolationGroups)
 	tlMgr.startWG.Add(1)
@@ -708,6 +708,9 @@ func newTaskListConfig(id *Identifier, cfg *config.Config, domainName string) *c
 		},
 		AsyncTaskDispatchTimeout: func() time.Duration {
 			return cfg.AsyncTaskDispatchTimeout(domainName, taskListName, taskType)
+		},
+		LocalMatchWaitDuration: func() time.Duration {
+			return cfg.LocalMatchWaitDuration(domainName, taskListName, taskType)
 		},
 		ForwarderConfig: config.ForwarderConfig{
 			ForwarderMaxOutstandingPolls: func() int {

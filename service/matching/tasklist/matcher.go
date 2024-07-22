@@ -39,7 +39,8 @@ import (
 // Producers are usually rpc calls from history or taskReader
 // that drains backlog from db. Consumers are the task list pollers
 type TaskMatcher struct {
-	log log.Logger
+	log        log.Logger
+	timeSource clock.TimeSource
 	// synchronous task channel to match producer/consumer for any isolation group
 	// tasks having no isolation requirement are added to this channel
 	// and pollers from all isolation groups read from this channel
@@ -55,9 +56,10 @@ type TaskMatcher struct {
 	// ratelimiter that limits the rate at which tasks can be dispatched to consumers
 	limiter *quotas.RateLimiter
 
-	fwdr          *Forwarder
-	scope         metrics.Scope // domain metric scope
-	numPartitions func() int    // number of task list partitions
+	fwdr                   *Forwarder
+	scope                  metrics.Scope // domain metric scope
+	numPartitions          func() int    // number of task list partitions
+	localMatchWaitDuration func() time.Duration
 }
 
 // ErrTasklistThrottled implies a tasklist was throttled
@@ -66,7 +68,7 @@ var ErrTasklistThrottled = errors.New("tasklist limit exceeded")
 // newTaskMatcher returns an task matcher instance. The returned instance can be
 // used by task producers and consumers to find a match. Both sync matches and non-sync
 // matches should use this implementation
-func newTaskMatcher(config *config.TaskListConfig, fwdr *Forwarder, scope metrics.Scope, isolationGroups []string, log log.Logger) *TaskMatcher {
+func newTaskMatcher(config *config.TaskListConfig, fwdr *Forwarder, scope metrics.Scope, isolationGroups []string, log log.Logger, timeSource clock.TimeSource) *TaskMatcher {
 	dPtr := config.TaskDispatchRPS
 	limiter := quotas.NewRateLimiter(&dPtr, config.TaskDispatchRPSTTL, config.MinTaskThrottlingBurstSize())
 	isolatedTaskC := make(map[string]chan *InternalTask)
@@ -74,14 +76,16 @@ func newTaskMatcher(config *config.TaskListConfig, fwdr *Forwarder, scope metric
 		isolatedTaskC[g] = make(chan *InternalTask)
 	}
 	return &TaskMatcher{
-		log:           log,
-		limiter:       limiter,
-		scope:         scope,
-		fwdr:          fwdr,
-		taskC:         make(chan *InternalTask),
-		isolatedTaskC: isolatedTaskC,
-		queryTaskC:    make(chan *InternalTask),
-		numPartitions: config.NumReadPartitions,
+		log:                    log,
+		limiter:                limiter,
+		scope:                  scope,
+		fwdr:                   fwdr,
+		taskC:                  make(chan *InternalTask),
+		isolatedTaskC:          isolatedTaskC,
+		queryTaskC:             make(chan *InternalTask),
+		numPartitions:          config.NumReadPartitions,
+		localMatchWaitDuration: config.LocalMatchWaitDuration,
+		timeSource:             timeSource,
 	}
 }
 
@@ -132,7 +136,7 @@ func (tm *TaskMatcher) Offer(ctx context.Context, task *InternalTask) (bool, err
 			return true, err
 		}
 		return false, nil
-	default:
+	case <-tm.timeSource.After(tm.localMatchWaitDuration()):
 		// no poller waiting for tasks, try forwarding this task to the
 		// root partition if possible
 		select {
@@ -229,7 +233,7 @@ func (tm *TaskMatcher) MustOffer(ctx context.Context, task *InternalTask) error 
 		return nil
 	case <-ctx.Done():
 		return fmt.Errorf("context done when trying to forward local task: %w", ctx.Err())
-	default:
+	case <-tm.timeSource.After(tm.localMatchWaitDuration()):
 	}
 
 forLoop:
@@ -424,7 +428,7 @@ func (tm *TaskMatcher) pollNonBlocking(
 		tm.scope.IncCounter(metrics.PollSuccessWithSyncPerTaskListCounter)
 		tm.scope.IncCounter(metrics.PollSuccessPerTaskListCounter)
 		return task, nil
-	default:
+	case <-tm.timeSource.After(tm.localMatchWaitDuration()):
 		return nil, ErrNoTasks
 	}
 }

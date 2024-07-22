@@ -2841,6 +2841,13 @@ const (
 	// Allowed filters: domainName, taskListName, taskListType
 	AsyncTaskDispatchTimeout
 
+	// LocalMatchWaitDuration is the time to wait for local match before considering forwarding tasks/pollers to another partition
+	// KeyName: matching.localMatchWaitDuration
+	// Value type: Duration
+	// Default value: 50 milliseconds
+	// Allowed filters: domainName, taskListName, taskListType
+	LocalMatchWaitDuration
+
 	// HistoryGlobalRatelimiterDecayAfter defines how long to wait for an update before considering a host's data "possibly gone", causing its weight to gradually decline.
 	// KeyName: history.globalRatelimiterDecayAfter
 	// Value type: Duration
@@ -5124,6 +5131,12 @@ var DurationKeys = map[DurationKey]DynamicDuration{
 		Filters:      []Filter{DomainName, TaskListName, TaskType},
 		Description:  "AsyncTaskDispatchTimeout is the timeout of dispatching tasks for async match",
 		DefaultValue: time.Second * 3,
+	},
+	LocalMatchWaitDuration: {
+		KeyName:      "matching.localMatchWaitDuration",
+		Filters:      []Filter{DomainName, TaskListName, TaskType},
+		Description:  "LocalMatchWaitDuration is the time to wait for local match before considering forwarding tasks/pollers to another partition",
+		DefaultValue: time.Millisecond * 50,
 	},
 	HistoryGlobalRatelimiterDecayAfter: {
 		KeyName:      "history.globalRatelimiterDecayAfter",
