@@ -240,7 +240,7 @@ forLoop:
 		case taskC <- task: // poller picked up the task
 			return nil
 		case token := <-tm.fwdrAddReqTokenC():
-			childCtx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Second*2))
+			childCtx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Second))
 			err := tm.fwdr.ForwardTask(childCtx, task)
 			token.release("")
 			if err != nil {
