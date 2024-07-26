@@ -123,6 +123,7 @@ func (tm *TaskMatcher) Offer(ctx context.Context, task *InternalTask) (bool, err
 		err := tm.ratelimit(ctx)
 		if err != nil {
 			tm.scope.IncCounter(metrics.SyncThrottlePerTaskListCounter)
+			tm.log.Error("sync match rate limit", tag.Error(err))
 			return false, err
 		}
 	}
