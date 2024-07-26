@@ -448,6 +448,7 @@ func (tm *TaskMatcher) fwdrAddReqTokenC() <-chan *ForwarderReqToken {
 }
 
 func (tm *TaskMatcher) ratelimit(ctx context.Context) error {
+	tm.scope.IncCounter(metrics.BufferThrottlePerTaskListCounter)
 	err := tm.limiter.Wait(ctx)
 	if errors.Is(err, clock.ErrCannotWait) {
 		// "err != ctx.Err()" may also be correct, as that would mean "gave up due to context".
