@@ -559,8 +559,10 @@ func (c *taskListManagerImpl) newChildContext(
 	}
 	remaining := time.Until(deadline) - tailroom
 	if remaining < timeout {
+		if timeout == maxSyncMatchWaitTime {
+			c.logger.Error("remaining", tag.Number(remaining.Milliseconds()), tag.WorkflowPollContextTimeout(remaining))
+		}
 		timeout = time.Duration(common.MaxInt64(0, int64(remaining)))
-		c.logger.Error("remaining", tag.Number(timeout.Milliseconds()), tag.WorkflowPollContextTimeout(timeout))
 	}
 	return context.WithTimeout(parent, timeout)
 }
