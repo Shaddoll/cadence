@@ -120,10 +120,12 @@ func newTaskMatcher(config *config.TaskListConfig, fwdr *Forwarder, scope metric
 //   - task is matched and consumer returns error in response channel
 func (tm *TaskMatcher) Offer(ctx context.Context, task *InternalTask) (bool, error) {
 	if !task.IsForwarded() {
+		deadline, _ := ctx.Deadline()
+		d := deadline.Sub(time.Now())
 		err := tm.ratelimit(ctx)
 		if err != nil {
 			tm.scope.IncCounter(metrics.SyncThrottlePerTaskListCounter)
-			tm.log.Error("sync match rate limit", tag.Error(err))
+			tm.log.Error("sync match rate limit", tag.Error(err), tag.WorkflowPollContextTimeout(d))
 			return false, err
 		}
 	}
