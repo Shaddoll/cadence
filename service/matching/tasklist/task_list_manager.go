@@ -549,6 +549,7 @@ func (c *taskListManagerImpl) newChildContext(
 ) (context.Context, context.CancelFunc) {
 	select {
 	case <-parent.Done():
+		c.logger.Error("context timeout")
 		return parent, func() {}
 	default:
 	}
