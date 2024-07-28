@@ -260,7 +260,9 @@ func (c *taskListManagerImpl) AddTask(ctx context.Context, params AddTaskParams)
 		c.liveness.MarkAlive()
 	}
 	var syncMatch bool
+	var retry int32
 	_, err := c.executeWithRetry(func() (interface{}, error) {
+		retry++
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
@@ -288,6 +290,7 @@ func (c *taskListManagerImpl) AddTask(ctx context.Context, params AddTaskParams)
 			return false, err
 		}
 		// active task, try sync match first
+		c.logger.Error("retry sync match", tag.Attempt(retry))
 		syncMatch, err = c.trySyncMatch(ctx, params, isolationGroup)
 		if syncMatch {
 			return &persistence.CreateTasksResponse{}, err
