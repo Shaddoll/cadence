@@ -383,7 +383,7 @@ func (tr *taskReader) completeTask(task *persistence.TaskInfo, err error) {
 
 func (tr *taskReader) newDispatchContext(isolationGroup string) (context.Context, context.CancelFunc) {
 	rps := tr.ratePerSecond()
-	if isolationGroup != "" || rps > 1e-7 { // 1e-7 is a random number chosen to avoid overflow, normally user don't set such a low rps
+	if isolationGroup != "" && rps > 1e-7 { // 1e-7 is a random number chosen to avoid overflow, normally user don't set such a low rps
 		// this is the minimum timeout required to dispatch a task, if the timeout value is smaller than this
 		// async task dispatch can be completely throttled, which could happen when ratePerSecond is pretty low
 		minTimeout := time.Duration(float64(len(tr.taskBuffers))/rps) * time.Second

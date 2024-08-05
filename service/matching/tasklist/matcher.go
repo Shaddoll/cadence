@@ -287,7 +287,7 @@ forLoop:
 		case token := <-tm.fwdrAddReqTokenC():
 			e.EventName = "Attempting to Forward Task"
 			event.Log(e)
-			childCtx, cancel := context.WithTimeout(ctx, time.Second*2)
+			childCtx, cancel := context.WithTimeout(ctx, time.Second*66)
 			err := tm.fwdr.ForwardTask(childCtx, task)
 			token.release("")
 			if err != nil {
