@@ -477,6 +477,7 @@ func (c *taskListManagerImpl) DescribeTaskList(includeTaskListStatus bool) *type
 			EndID:   taskIDBlock.end,
 		},
 	}
+	c.logger.Warn("log pollers", tag.Dynamic("pollers", c.outstandingPollsMap))
 
 	return response
 }
