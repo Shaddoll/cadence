@@ -32,6 +32,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/exp/maps"
+
 	"github.com/uber/cadence/client/matching"
 	"github.com/uber/cadence/common"
 	"github.com/uber/cadence/common/backoff"
@@ -477,7 +479,7 @@ func (c *taskListManagerImpl) DescribeTaskList(includeTaskListStatus bool) *type
 			EndID:   taskIDBlock.end,
 		},
 	}
-	c.logger.Warn("log pollers", tag.Dynamic("pollers", c.outstandingPollsMap))
+	c.logger.Warn("log pollers", tag.Dynamic("pollers", maps.Keys(c.outstandingPollsMap)))
 
 	return response
 }
