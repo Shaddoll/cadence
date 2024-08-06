@@ -302,24 +302,6 @@ forLoop:
 					tag.Error(err),
 					tag.TaskID(task.Event.TaskID),
 				)
-				// forwarder returns error only when the call is rate limited. To
-				// avoid a busy loop on such rate limiting events, we only attempt to make
-				// the next forwarded call after this childCtx expires. Till then, we block
-				// hoping for a local poller match
-				select {
-				case taskC <- task: // poller picked up the task
-					e.EventName = "Dispatched to Local Poller (after failed forward)"
-					event.Log(e)
-					cancel()
-					tm.scope.IncCounter(metrics.AsyncMatchLocalPollAfterForwardFailedCounterPerTaskList)
-					tm.scope.RecordTimer(metrics.AsyncMatchLocalPollAfterForwardFailedAttemptPerTaskList, time.Duration(attempt))
-					tm.scope.RecordTimer(metrics.AsyncMatchLocalPollAfterForwardFailedLatencyPerTaskList, time.Since(startT))
-					return nil
-				case <-childCtx.Done():
-				case <-ctx.Done():
-					cancel()
-					return fmt.Errorf("failed to dispatch after failing to forward task: %w", ctx.Err())
-				}
 				cancel()
 				attempt++
 				continue forLoop
