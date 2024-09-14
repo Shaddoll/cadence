@@ -2236,6 +2236,8 @@ const (
 	GlobalRatelimiterRemovedLimits
 	GlobalRatelimiterRemovedHostLimits
 
+	EstimatedQPSGauge
+
 	NumCommonMetrics // Needs to be last on this list for iota numbering
 )
 
@@ -2824,6 +2826,9 @@ var MetricDefs = map[ServiceIdx]map[int]metricDefinition{
 		MatchingClientInvalidTaskListName:                         {metricName: "invalid_task_list_name", metricType: Counter},
 
 		// per task list common metrics
+		EstimatedQPSGauge: {
+			metricName: "estimated_qps", metricType: Gauge,
+		},
 
 		CadenceRequestsPerTaskList: {
 			metricName: "cadence_requests_per_tl", metricRollupName: "cadence_requests", metricType: Counter,

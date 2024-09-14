@@ -44,6 +44,7 @@ import (
 	"github.com/uber/cadence/common/metrics"
 	"github.com/uber/cadence/common/partition"
 	"github.com/uber/cadence/common/persistence"
+	"github.com/uber/cadence/common/quotas"
 	"github.com/uber/cadence/common/types"
 	"github.com/uber/cadence/service/matching/config"
 	"github.com/uber/cadence/service/matching/event"
@@ -117,6 +118,8 @@ type (
 		startWG              sync.WaitGroup // ensures that background processes do not start until setup is ready
 		stopped              int32
 		closeCallback        func(Manager)
+
+		qpsReporter quotas.StatsReporter
 	}
 )
 
@@ -188,6 +191,7 @@ func NewManager(
 		tlMgr.logger.Info("Task list manager stopping because no recent events", tag.Dynamic("interval", livenessInterval))
 		tlMgr.Stop()
 	})
+	tlMgr.qpsReporter = quotas.NewEmaFixedWindowQPSReporter(timeSource, 0.5, 10*time.Second)
 	var isolationGroups []string
 	if tlMgr.isIsolationMatcherEnabled() {
 		isolationGroups = config.AllIsolationGroups
@@ -214,6 +218,7 @@ func (c *taskListManagerImpl) Start() error {
 		return err
 	}
 	c.taskReader.Start()
+	c.qpsReporter.Start()
 
 	return nil
 }
@@ -224,6 +229,7 @@ func (c *taskListManagerImpl) Stop() {
 		return
 	}
 	c.closeCallback(c)
+	c.qpsReporter.Stop()
 	c.liveness.Stop()
 	c.taskWriter.Stop()
 	c.taskReader.Stop()
@@ -258,6 +264,9 @@ func (c *taskListManagerImpl) AddTask(ctx context.Context, params AddTaskParams)
 	if params.ForwardedFrom == "" {
 		// request sent by history service
 		c.liveness.MarkAlive()
+		c.qpsReporter.ReportCounter(1)
+		qps := c.qpsReporter.QPS()
+		c.scope.UpdateGauge(metrics.EstimatedQPSGauge, qps)
 	}
 	var syncMatch bool
 	e := event.E{
