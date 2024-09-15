@@ -41,10 +41,10 @@ type (
 		wg                    sync.WaitGroup
 		done                  chan struct{}
 		status                *atomic.Int32
-		firstBucket           bool
 
-		qps     *atomic.Float64
-		counter *atomic.Int64
+		firstBucket bool
+		qps         *atomic.Float64
+		counter     *atomic.Int64
 	}
 )
 
@@ -111,4 +111,87 @@ func (r *emaFixedWindowQPSReporter) ReportCounter(delta int64) {
 
 func (r *emaFixedWindowQPSReporter) QPS() float64 {
 	return r.qps.Load()
+}
+
+type (
+	rollingWindowQPSReporter struct {
+		timeSource     clock.TimeSource
+		bucketInterval time.Duration
+		buckets        []int64
+		wg             sync.WaitGroup
+		done           chan struct{}
+		status         *atomic.Int32
+
+		counter      *atomic.Int64
+		bucketIndex  int
+		totalCounter *atomic.Int64
+	}
+)
+
+func NewRollingWindowQPSReporter(timeSource clock.TimeSource, bucketInterval time.Duration, numBuckets int) StatsReporter {
+	return &rollingWindowQPSReporter{
+		timeSource:     timeSource,
+		bucketInterval: bucketInterval,
+		buckets:        make([]int64, numBuckets),
+		done:           make(chan struct{}),
+		status:         atomic.NewInt32(common.DaemonStatusInitialized),
+		counter:        atomic.NewInt64(0),
+		totalCounter:   atomic.NewInt64(0),
+	}
+}
+
+func (r *rollingWindowQPSReporter) Start() {
+	if !r.status.CompareAndSwap(common.DaemonStatusInitialized, common.DaemonStatusStarted) {
+		return
+	}
+	r.bucketIndex = r.getCurrentBucketIndex()
+	r.wg.Add(1)
+	go r.reportLoop()
+}
+
+func (r *rollingWindowQPSReporter) Stop() {
+	if !r.status.CompareAndSwap(common.DaemonStatusStarted, common.DaemonStatusStopped) {
+		return
+	}
+	close(r.done)
+	r.wg.Wait()
+}
+
+func (r *rollingWindowQPSReporter) reportLoop() {
+	defer r.wg.Done()
+	ticker := r.timeSource.NewTicker(r.bucketInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.Chan():
+			r.report()
+		case <-r.done:
+			return
+		}
+	}
+}
+
+func (r *rollingWindowQPSReporter) report() {
+	old := r.buckets[r.bucketIndex]
+	new := r.counter.Swap(0)
+	r.buckets[r.bucketIndex] = new
+	r.totalCounter.Add(new - old)
+	r.bucketIndex++
+	if r.bucketIndex == len(r.buckets) {
+		r.bucketIndex = 0
+	}
+}
+
+func (r *rollingWindowQPSReporter) getCurrentBucketIndex() int {
+	now := r.timeSource.Now()
+	return int(now.UnixNano()/int64(r.bucketInterval)) % len(r.buckets)
+}
+
+func (r *rollingWindowQPSReporter) ReportCounter(delta int64) {
+	r.counter.Add(delta)
+}
+
+func (r *rollingWindowQPSReporter) QPS() float64 {
+	return float64(r.totalCounter.Load()) / float64(r.bucketInterval) * float64(time.Second)
 }

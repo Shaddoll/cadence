@@ -191,7 +191,7 @@ func NewManager(
 		tlMgr.logger.Info("Task list manager stopping because no recent events", tag.Dynamic("interval", livenessInterval))
 		tlMgr.Stop()
 	})
-	tlMgr.qpsReporter = quotas.NewEmaFixedWindowQPSReporter(timeSource, 0.5, 10*time.Second)
+	tlMgr.qpsReporter = quotas.NewRollingWindowQPSReporter(timeSource, time.Second, 10)
 	var isolationGroups []string
 	if tlMgr.isIsolationMatcherEnabled() {
 		isolationGroups = config.AllIsolationGroups
