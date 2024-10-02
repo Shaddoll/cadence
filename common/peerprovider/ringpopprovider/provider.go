@@ -52,7 +52,7 @@ type (
 		logger      log.Logger
 		portmap     membership.PortMap
 		mu          sync.RWMutex
-		subscribers map[string]func(membership.ChangedEvent)
+		subscribers map[string]chan<- *membership.ChangedEvent
 	}
 )
 
@@ -118,7 +118,7 @@ func NewRingpopProvider(
 		logger:      logger,
 		portmap:     portMap,
 		ringpop:     rp,
-		subscribers: map[string]func(membership.ChangedEvent){},
+		subscribers: map[string]chan<- *membership.ChangedEvent{},
 	}
 }
 
@@ -165,22 +165,26 @@ func (r *Provider) HandleEvent(event events.Event) {
 		return
 	}
 
-	change := membership.ChangedEvent{
+	r.logger.Info("Received a ringpop ring changed event")
+	// Marshall the event object into the required type
+	change := &membership.ChangedEvent{
 		HostsAdded:   e.ServersAdded,
 		HostsUpdated: e.ServersUpdated,
 		HostsRemoved: e.ServersRemoved,
 	}
-	r.logger.Info("Received a ringpop ring changed event", tag.MembershipChangeEvent(change))
-	r.notifySubscribers(change)
-}
 
-func (r *Provider) notifySubscribers(event membership.ChangedEvent) {
+	// Notify subscribers
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	for _, handler := range r.subscribers {
-		handler(event)
+	for name, ch := range r.subscribers {
+		select {
+		case ch <- change:
+		default:
+			r.logger.Error("Failed to send listener notification, channel full", tag.Subscriber(name))
+		}
 	}
+
 }
 
 func (r *Provider) SelfEvict() error {
@@ -284,7 +288,7 @@ func (r *Provider) Stop() {
 }
 
 // Subscribe allows to be subscribed for ring changes
-func (r *Provider) Subscribe(name string, handler func(membership.ChangedEvent)) error {
+func (r *Provider) Subscribe(name string, notifyChannel chan<- *membership.ChangedEvent) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -293,7 +297,7 @@ func (r *Provider) Subscribe(name string, handler func(membership.ChangedEvent))
 		return fmt.Errorf("%q already subscribed to ringpop provider", name)
 	}
 
-	r.subscribers[name] = handler
+	r.subscribers[name] = notifyChannel
 	return nil
 }
 
