@@ -33,12 +33,10 @@ const (
 	Matching = "cadence-matching"
 	// Worker is the name of the worker service
 	Worker = "cadence-worker"
-	// ShardManager is the name of the shard manager service
-	ShardManager = "cadence-shard-manager"
 )
 
 // List contains the list of all cadence services
-var List = []string{Frontend, History, Matching, Worker, ShardManager}
+var List = []string{Frontend, History, Matching, Worker}
 
 // ShortName returns cadence service name without "cadence-" prefix
 func ShortName(name string) string {
