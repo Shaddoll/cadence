@@ -373,16 +373,7 @@ func (c *taskListManagerImpl) GetTask(
 		return nil, fmt.Errorf("couldn't get task: %w", err)
 	}
 	task.domainName = c.domainName
-	// according to Little's Law, the average number of tasks in the queue L = λW
-	// where λ is the average arrival rate and W is the average wait time a task spends in the queue
-	// here λ is the QPS and W is the average match latency which is 10ms
-	// so the backlog hint should be backlog count + L.
-	smoothingNumber := int64(0)
-	qps := c.qpsTracker.QPS()
-	if qps > 0.01 {
-		smoothingNumber = int64(math.Ceil(qps * 0.01))
-	}
-	task.BacklogCountHint = c.taskAckManager.GetBacklogCount() + smoothingNumber
+	task.BacklogCountHint = c.taskAckManager.GetBacklogCount()
 	return task, nil
 }
 
