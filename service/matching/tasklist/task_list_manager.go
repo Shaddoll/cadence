@@ -27,7 +27,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -377,11 +376,6 @@ func (c *taskListManagerImpl) GetTask(
 	// where λ is the average arrival rate and W is the average wait time a task spends in the queue
 	// here λ is the QPS and W is the average match latency which is 10ms
 	// so the backlog hint should be backlog count + L.
-	smoothingNumber := int64(0)
-	qps := c.qpsTracker.QPS()
-	if qps > 0.01 {
-		smoothingNumber += int64(math.Ceil(qps * 0.01))
-	}
 	task.BacklogCountHint = c.taskAckManager.GetBacklogCount()
 	return task, nil
 }
