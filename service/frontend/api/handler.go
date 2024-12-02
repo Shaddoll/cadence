@@ -350,6 +350,11 @@ func (wh *WorkflowHandler) PollForActivityTask(
 
 	err = wh.throttleRetry.Do(ctx, op)
 	if err != nil {
+		wh.GetLogger().Error("PollForActivityTask failed.",
+			tag.WorkflowTaskListName(pollRequest.GetTaskList().GetName()),
+			tag.Error(err),
+			tag.Dynamic("resp-nil", matchingResp != nil),
+		)
 		err = wh.cancelOutstandingPoll(ctx, err, domainID, persistence.TaskListTypeActivity, pollRequest.TaskList, pollerID)
 		if err != nil {
 			// For all other errors log an error and return it back to client.
