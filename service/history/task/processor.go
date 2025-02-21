@@ -45,11 +45,16 @@ type processorImpl struct {
 	shardSchedulers  map[shard.Context]task.Scheduler
 
 	status        int32
-	options       *task.SchedulerOptions[int]
-	shardOptions  *task.SchedulerOptions[int]
+	options       *task.SchedulerOptions[TaskChannelKey]
+	shardOptions  *task.SchedulerOptions[TaskChannelKey]
 	logger        log.Logger
 	metricsClient metrics.Client
 	timeSource    clock.TimeSource
+}
+
+type TaskChannelKey struct {
+	DomainID string
+	Priority int
 }
 
 var (
@@ -64,22 +69,25 @@ func NewProcessor(
 	metricsClient metrics.Client,
 	timeSource clock.TimeSource,
 ) (Processor, error) {
-	taskToChannelKeyFn := func(t task.PriorityTask) int {
-		return t.Priority()
+	taskToChannelKeyFn := func(t task.PriorityTask) TaskChannelKey {
+		return TaskChannelKey{
+			DomainID: t.(Task).GetDomainID(),
+			Priority: t.Priority(),
+		}
 	}
-	channelKeyToWeightFn := func(priority int) int {
+	channelKeyToWeightFn := func(key TaskChannelKey) int {
 		weights, err := common.ConvertDynamicConfigMapPropertyToIntMap(config.TaskSchedulerRoundRobinWeights())
 		if err != nil {
 			logger.Error("failed to convert dynamic config map to int map", tag.Error(err))
 			weights = dynamicconfig.DefaultTaskSchedulerRoundRobinWeights
 		}
-		weight, ok := weights[priority]
+		weight, ok := weights[key.Priority]
 		if !ok {
-			logger.Error("weights not found for task priority", tag.Dynamic("priority", priority), tag.Dynamic("weights", weights))
+			logger.Error("weights not found for task priority", tag.Dynamic("priority", key.Priority), tag.Dynamic("weights", weights))
 		}
 		return weight
 	}
-	options, err := task.NewSchedulerOptions[int](
+	options, err := task.NewSchedulerOptions[TaskChannelKey](
 		config.TaskSchedulerType(),
 		config.TaskSchedulerQueueSize(),
 		config.TaskSchedulerWorkerCount,
@@ -96,9 +104,9 @@ func NewProcessor(
 	}
 	logger.Debug("Host level task scheduler is created", tag.Dynamic("scheduler_options", options.String()))
 
-	var shardOptions *task.SchedulerOptions[int]
+	var shardOptions *task.SchedulerOptions[TaskChannelKey]
 	if config.TaskSchedulerShardWorkerCount() > 0 {
-		shardOptions, err = task.NewSchedulerOptions[int](
+		shardOptions, err = task.NewSchedulerOptions[TaskChannelKey](
 			config.TaskSchedulerType(),
 			config.TaskSchedulerShardQueueSize(),
 			config.TaskSchedulerShardWorkerCount,
@@ -268,7 +276,7 @@ func (p *processorImpl) isRunning() bool {
 }
 
 func createTaskScheduler(
-	options *task.SchedulerOptions[int],
+	options *task.SchedulerOptions[TaskChannelKey],
 	logger log.Logger,
 	metricsClient metrics.Client,
 	timeSource clock.TimeSource,
