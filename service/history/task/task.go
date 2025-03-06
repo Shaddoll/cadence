@@ -207,7 +207,6 @@ func (t *taskImpl) Execute() error {
 	if t.shadowTask {
 		if t.shouldProcessTask {
 			t.scope.IncCounter(metrics.TaskShadowRequestsPerDomain)
-			time.Sleep(time.Second * 2)
 		}
 		return nil
 	}
