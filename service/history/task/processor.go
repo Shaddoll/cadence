@@ -213,7 +213,7 @@ func (p *processorImpl) TrySubmit(task Task) (bool, error) {
 	}
 
 	scheduler, shadowScheduler := p.getSchedulerAndShadowScheduler()
-	if shadowScheduler != nil {
+	if shadowScheduler != nil && task.GetAttempt() == 0 {
 		submitted, err := p.shadowScheduler.TrySubmit(task.ShadowCopy())
 		if !submitted {
 			p.logger.Warn("Failed to submit task to shadow scheduler", tag.Error(err))
