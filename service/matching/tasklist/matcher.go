@@ -169,16 +169,20 @@ func (tm *taskMatcherImpl) Offer(ctx context.Context, task *InternalTask) (bool,
 			if task.ResponseC != nil {
 				// if there is a response channel, block until resp is received
 				// and return error if the response contains error
-				err := <-task.ResponseC
-				tm.scope.RecordTimer(metrics.SyncMatchLocalPollLatencyPerTaskList, time.Since(startT))
-				if err == nil {
-					e.EventName = "Offer task due to local wait"
-					e.Payload = map[string]any{
-						"TaskIsForwarded": task.IsForwarded(),
+				select {
+				case err := <-task.ResponseC:
+					tm.scope.RecordTimer(metrics.SyncMatchLocalPollLatencyPerTaskList, time.Since(startT))
+					if err == nil {
+						e.EventName = "Offer task due to local wait"
+						e.Payload = map[string]any{
+							"TaskIsForwarded": task.IsForwarded(),
+						}
+						event.Log(e)
 					}
-					event.Log(e)
+					return true, err
+				case <-ctx.Done():
+					return false, ctx.Err()
 				}
-				return true, err
 			}
 			return false, nil
 		case <-childCtx.Done():
@@ -190,9 +194,13 @@ func (tm *taskMatcherImpl) Offer(ctx context.Context, task *InternalTask) (bool,
 		if task.ResponseC != nil {
 			// if there is a response channel, block until resp is received
 			// and return error if the response contains error
-			err := <-task.ResponseC
-			tm.scope.RecordTimer(metrics.SyncMatchLocalPollLatencyPerTaskList, time.Since(startT))
-			return true, err
+			select {
+			case err := <-task.ResponseC:
+				tm.scope.RecordTimer(metrics.SyncMatchLocalPollLatencyPerTaskList, time.Since(startT))
+				return true, err
+			case <-ctx.Done():
+				return false, ctx.Err()
+			}
 		}
 		return false, nil
 	default:
