@@ -151,6 +151,7 @@ func (tm *taskMatcherImpl) Offer(ctx context.Context, task *InternalTask) (bool,
 	if !task.IsForwarded() {
 		err := tm.ratelimit(ctx)
 		if err != nil {
+			tm.log.Error("offer rate limited", tag.Error(err), tag.Dynamic("limit", tm.limiter.Limit()))
 			tm.scope.IncCounter(metrics.SyncThrottlePerTaskListCounter)
 			return false, err
 		}
