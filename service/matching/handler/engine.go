@@ -1389,6 +1389,13 @@ func (e *matchingEngineImpl) errIfShardLoss(taskList *tasklist.Identifier) error
 		return fmt.Errorf("failed to lookup task list owner: %w", err)
 	}
 
+	e.logger.Error("check tasklist ownership",
+		tag.WorkflowDomainID(taskList.GetDomainID()),
+		tag.WorkflowTaskListType(taskList.GetType()),
+		tag.WorkflowTaskListName(taskList.GetName()),
+		tag.Dynamic("task list owner", taskListOwner.Identity()),
+		tag.Dynamic("self", self.Identity()),
+	)
 	if taskListOwner.Identity() != self.Identity() {
 		e.logger.Warn("Request to get tasklist is being rejected because engine does not own this shard",
 			tag.WorkflowDomainID(taskList.GetDomainID()),
