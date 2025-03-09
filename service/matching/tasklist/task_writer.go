@@ -244,12 +244,6 @@ writerLoop:
 				resp, err := w.db.CreateTasks(tasks)
 				err = w.handleErr(err)
 				if err != nil {
-					w.logger.Error("Persistent store operation failure",
-						tag.StoreOperationCreateTasks,
-						tag.Error(err),
-						tag.Number(taskIDs[0]),
-						tag.NextNumber(taskIDs[batchSize-1]),
-					)
 				} else {
 					event.Log(events...)
 				}

@@ -25,6 +25,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/pborman/uuid"
+
 	"github.com/uber/cadence/common/log"
 	"github.com/uber/cadence/common/log/tag"
 	"github.com/uber/cadence/common/persistence"
@@ -44,6 +46,8 @@ type (
 		partitionConfig *persistence.TaskListPartitionConfig
 		store           persistence.TaskManager
 		logger          log.Logger
+
+		id string
 	}
 	taskListState struct {
 		rangeID  int64
@@ -70,6 +74,7 @@ func newTaskListDB(store persistence.TaskManager, domainID string, domainName st
 		taskType:     taskType,
 		store:        store,
 		logger:       logger,
+		id:           uuid.New(),
 	}
 }
 
@@ -108,7 +113,10 @@ func (db *taskListDB) RenewLease() (taskListState, error) {
 		db.logger.Error("Persistent store operation failure",
 			tag.Error(err),
 			tag.TaskType(db.taskType),
-			tag.WorkflowTaskListName(db.taskListName))
+			tag.WorkflowDomainID(db.domainID),
+			tag.WorkflowTaskListName(db.taskListName),
+			tag.Dynamic("uuid", db.id),
+		)
 		return taskListState{}, err
 	}
 	db.rangeID = resp.TaskListInfo.RangeID
@@ -137,7 +145,10 @@ func (db *taskListDB) UpdateState(ackLevel int64) error {
 		db.logger.Error("Persistent store operation failure",
 			tag.Error(err),
 			tag.TaskType(db.taskType),
-			tag.WorkflowTaskListName(db.taskListName))
+			tag.WorkflowDomainID(db.domainID),
+			tag.WorkflowTaskListName(db.taskListName),
+			tag.Dynamic("uuid", db.id),
+		)
 		return err
 	}
 	db.ackLevel = ackLevel
@@ -170,7 +181,7 @@ func (db *taskListDB) UpdateTaskListPartitionConfig(partitionConfig *persistence
 func (db *taskListDB) CreateTasks(tasks []*persistence.CreateTaskInfo) (*persistence.CreateTasksResponse, error) {
 	db.Lock()
 	defer db.Unlock()
-	return db.store.CreateTasks(context.Background(), &persistence.CreateTasksRequest{
+	resp, err := db.store.CreateTasks(context.Background(), &persistence.CreateTasksRequest{
 		TaskListInfo: &persistence.TaskListInfo{
 			DomainID: db.domainID,
 			Name:     db.taskListName,
@@ -180,6 +191,16 @@ func (db *taskListDB) CreateTasks(tasks []*persistence.CreateTaskInfo) (*persist
 		Tasks:      tasks,
 		DomainName: db.domainName,
 	})
+	if err != nil {
+		db.logger.Error("Persistent store operation failure",
+			tag.Error(err),
+			tag.TaskType(db.taskType),
+			tag.WorkflowDomainID(db.domainID),
+			tag.WorkflowTaskListName(db.taskListName),
+			tag.Dynamic("uuid", db.id),
+		)
+	}
+	return resp, err
 }
 
 // GetTasks returns a batch of tasks between the given range
