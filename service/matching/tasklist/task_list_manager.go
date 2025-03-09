@@ -816,6 +816,9 @@ func (c *taskListManagerImpl) executeWithRetry(
 
 	op := func() error {
 		result, err = operation()
+		if err != nil {
+			c.logger.Error("failed operation", tag.Error(err))
+		}
 		return err
 	}
 
@@ -828,6 +831,10 @@ func (c *taskListManagerImpl) executeWithRetry(
 }
 
 func (c *taskListManagerImpl) trySyncMatch(ctx context.Context, params AddTaskParams, isolationGroup string) (bool, error) {
+	if ctx.Err() != nil {
+		c.logger.Error("try sync match failed")
+		return false, ctx.Err()
+	}
 	task := newInternalTask(params.TaskInfo, nil, params.Source, params.ForwardedFrom, true, params.ActivityTaskDispatchInfo, isolationGroup)
 	childCtx := ctx
 	cancel := func() {}
