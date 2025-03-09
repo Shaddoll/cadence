@@ -323,7 +323,7 @@ func (c *taskListManagerImpl) Stop() {
 	c.taskReader.Stop()
 	c.matcher.DisconnectBlockedPollers()
 	c.stopWG.Wait()
-	c.logger.Info("Task list manager state changed", tag.LifeCycleStopped)
+	c.logger.Info("Task list manager state changed", tag.LifeCycleStopped, tag.Dynamic("id", c.db.id))
 }
 
 func (c *taskListManagerImpl) handleErr(err error) error {
@@ -331,7 +331,7 @@ func (c *taskListManagerImpl) handleErr(err error) error {
 	if errors.As(err, &e) {
 		// This indicates the task list may have moved to another host.
 		c.scope.IncCounter(metrics.ConditionFailedErrorPerTaskListCounter)
-		c.logger.Info("Stopping task list due to persistence condition failure.", tag.Error(err))
+		c.logger.Info("Stopping task list due to persistence condition failure.", tag.Error(err), tag.Dynamic("id", c.db.id))
 		c.Stop()
 		if c.taskListKind == types.TaskListKindSticky {
 			// TODO: we don't see this error in our logs, we might be able to remove this error
