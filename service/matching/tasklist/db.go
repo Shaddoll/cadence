@@ -105,6 +105,10 @@ func (db *taskListDB) RenewLease() (taskListState, error) {
 		DomainName:   db.domainName,
 	})
 	if err != nil {
+		db.logger.Error("Persistent store operation failure",
+			tag.Error(err),
+			tag.TaskType(db.taskType),
+			tag.WorkflowTaskListName(db.taskListName))
 		return taskListState{}, err
 	}
 	db.rangeID = resp.TaskListInfo.RangeID
@@ -130,6 +134,10 @@ func (db *taskListDB) UpdateState(ackLevel int64) error {
 		DomainName: db.domainName,
 	})
 	if err != nil {
+		db.logger.Error("Persistent store operation failure",
+			tag.Error(err),
+			tag.TaskType(db.taskType),
+			tag.WorkflowTaskListName(db.taskListName))
 		return err
 	}
 	db.ackLevel = ackLevel
