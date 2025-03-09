@@ -1393,7 +1393,7 @@ func (e *matchingEngineImpl) errIfShardLoss(taskList *tasklist.Identifier) error
 		tag.WorkflowDomainID(taskList.GetDomainID()),
 		tag.WorkflowTaskListType(taskList.GetType()),
 		tag.WorkflowTaskListName(taskList.GetName()),
-		tag.Dynamic("task list owner", taskListOwner.Identity()),
+		tag.Dynamic("task-list-owner", taskListOwner.Identity()),
 		tag.Dynamic("self", self.Identity()),
 	)
 	if taskListOwner.Identity() != self.Identity() {
