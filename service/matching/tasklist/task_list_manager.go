@@ -304,6 +304,7 @@ func (c *taskListManagerImpl) Start() error {
 	if c.adaptiveScaler != nil {
 		c.adaptiveScaler.Start()
 	}
+	c.logger.Error("Task list manager state changed", tag.LifeCycleStarted, tag.Dynamic("id", c.db.id))
 
 	return nil
 }

@@ -264,7 +264,6 @@ func (e *matchingEngineImpl) getTaskListManager(taskList *tasklist.Identifier, t
 		logger.Info("Task list manager state changed", tag.LifeCycleStartFailed, tag.Error(err))
 		return nil, err
 	}
-	logger.Error("Task list manager state changed", tag.LifeCycleStarted)
 	event.Log(event.E{
 		TaskListName: taskList.GetName(),
 		TaskListKind: taskListKind,
