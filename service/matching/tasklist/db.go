@@ -101,6 +101,13 @@ func (db *taskListDB) PartitionConfig() *persistence.TaskListPartitionConfig {
 func (db *taskListDB) RenewLease() (taskListState, error) {
 	db.Lock()
 	defer db.Unlock()
+	db.logger.Error("renew lease",
+		tag.TaskType(db.taskType),
+		tag.WorkflowDomainID(db.domainID),
+		tag.WorkflowTaskListName(db.taskListName),
+		tag.Dynamic("uuid", db.id),
+		tag.Dynamic("range-id", db.rangeID),
+	)
 	resp, err := db.store.LeaseTaskList(context.Background(), &persistence.LeaseTaskListRequest{
 		DomainID:     db.domainID,
 		TaskList:     db.taskListName,
@@ -148,6 +155,7 @@ func (db *taskListDB) UpdateState(ackLevel int64) error {
 			tag.WorkflowDomainID(db.domainID),
 			tag.WorkflowTaskListName(db.taskListName),
 			tag.Dynamic("uuid", db.id),
+			tag.Dynamic("range-id", db.rangeID),
 		)
 		return err
 	}
