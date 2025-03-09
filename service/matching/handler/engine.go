@@ -230,7 +230,7 @@ func (e *matchingEngineImpl) getTaskListManager(taskList *tasklist.Identifier, t
 		tag.WorkflowDomainID(taskList.GetDomainID()),
 	)
 
-	logger.Info("Task list manager state changed", tag.LifeCycleStarting)
+	logger.Error("Task list manager state changed", tag.LifeCycleStarting)
 	mgr, err := tasklist.NewManager(
 		e.domainCache,
 		e.logger,
@@ -264,7 +264,7 @@ func (e *matchingEngineImpl) getTaskListManager(taskList *tasklist.Identifier, t
 		logger.Info("Task list manager state changed", tag.LifeCycleStartFailed, tag.Error(err))
 		return nil, err
 	}
-	logger.Info("Task list manager state changed", tag.LifeCycleStarted)
+	logger.Error("Task list manager state changed", tag.LifeCycleStarted)
 	event.Log(event.E{
 		TaskListName: taskList.GetName(),
 		TaskListKind: taskListKind,
@@ -311,7 +311,7 @@ func (e *matchingEngineImpl) removeTaskListManager(tlMgr tasklist.Manager) {
 	if ok && tlMgr == currentTlMgr {
 		delete(e.taskLists, *id)
 	}
-
+	e.logger.Error("remove manager", tag.WorkflowTaskListName(id.GetName()), tag.WorkflowDomainID(id.GetDomainID()))
 	e.metricsClient.Scope(metrics.MatchingTaskListMgrScope).UpdateGauge(
 		metrics.TaskListManagersGauge,
 		float64(len(e.taskLists)),
