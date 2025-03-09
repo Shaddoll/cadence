@@ -349,7 +349,7 @@ func (r *ratelimiter) Wait(ctx context.Context) (err error) {
 		// canceled contexts imply that the limited-work will not be done,
 		// so do not allow any tokens to be consumed.
 		// rate.Limiter also behaves this way in Wait.
-		return err
+		return fmt.Errorf("error context: %w", err)
 	}
 
 	now, unlock := r.lockNow()
@@ -405,7 +405,7 @@ func (r *ratelimiter) Wait(ctx context.Context) (err error) {
 	defer timer.Stop()
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		return fmt.Errorf("delayed context: %w, delay: %v", ctx.Err(), delay)
 	case <-timer.Chan():
 		return nil
 	}
