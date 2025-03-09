@@ -149,11 +149,6 @@ func (tr *taskReader) Start() {
 func (tr *taskReader) Stop() {
 	if atomic.CompareAndSwapInt64(&tr.stopped, 0, 1) {
 		tr.cancelFunc()
-		if err := tr.persistAckLevel(); err != nil {
-			tr.logger.Error("Persistent store operation failure",
-				tag.StoreOperationUpdateTaskList,
-				tag.Error(err))
-		}
 		tr.taskGC.RunNow(tr.taskAckManager.GetAckLevel())
 		tr.stopWg.Wait()
 	}
