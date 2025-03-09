@@ -885,8 +885,12 @@ func (c *taskListManagerImpl) newChildContext(
 	if !ok {
 		return context.WithTimeout(parent, timeout)
 	}
-	remaining := time.Until(deadline) - tailroom
+	total := time.Until(deadline)
+	remaining := total - tailroom
 	if remaining < timeout {
+		if remaining < 0 {
+			c.logger.Error("not enough remaining time", tag.Dynamic("total", total))
+		}
 		timeout = time.Duration(common.MaxInt64(0, int64(remaining)))
 	}
 	return context.WithTimeout(parent, timeout)
