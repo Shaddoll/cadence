@@ -578,7 +578,11 @@ func (c *taskListManagerImpl) AddTask(ctx context.Context, params AddTaskParams)
 
 		e.EventName = "Task Sent to Writer"
 		event.Log(e)
-		return c.taskWriter.appendTask(params.TaskInfo)
+		_, err = c.taskWriter.appendTask(params.TaskInfo)
+		if err != nil {
+			c.logger.Error("append task error", tag.Error(err))
+		}
+		return false, err
 	})
 
 	if err == nil && !syncMatch {
@@ -855,6 +859,9 @@ func (c *taskListManagerImpl) trySyncMatch(ctx context.Context, params AddTaskPa
 		matched, err = c.matcher.Offer(childCtx, task)
 	}
 	cancel()
+	if err != nil {
+		c.logger.Error("sync match failed end", tag.Error(err))
+	}
 	return matched, err
 }
 
