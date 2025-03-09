@@ -304,7 +304,7 @@ func (c *taskListManagerImpl) Start() error {
 	if c.adaptiveScaler != nil {
 		c.adaptiveScaler.Start()
 	}
-	c.logger.Error("Task list manager state changed", tag.LifeCycleStarted, tag.Dynamic("id", c.db.id), tag.Dynamic("range-id", c.db.rangeID))
+	c.logger.Error("Task list manager state changed", tag.LifeCycleStarted, tag.Dynamic("id", c.db.id), tag.Dynamic("range-id", c.db.rangeID), tag.Dynamic("time", time.Now()))
 
 	return nil
 }
@@ -324,7 +324,7 @@ func (c *taskListManagerImpl) Stop() {
 	c.taskReader.Stop()
 	c.matcher.DisconnectBlockedPollers()
 	c.stopWG.Wait()
-	c.logger.Info("Task list manager state changed", tag.LifeCycleStopped, tag.Dynamic("id", c.db.id))
+	c.logger.Info("Task list manager state changed", tag.LifeCycleStopped, tag.Dynamic("id", c.db.id), tag.Dynamic("range-id", c.db.rangeID), tag.Dynamic("time", time.Now()))
 }
 
 func (c *taskListManagerImpl) handleErr(err error) error {
@@ -332,7 +332,7 @@ func (c *taskListManagerImpl) handleErr(err error) error {
 	if errors.As(err, &e) {
 		// This indicates the task list may have moved to another host.
 		c.scope.IncCounter(metrics.ConditionFailedErrorPerTaskListCounter)
-		c.logger.Info("Stopping task list due to persistence condition failure.", tag.Error(err), tag.Dynamic("id", c.db.id), tag.Dynamic("range-id", c.db.rangeID))
+		c.logger.Info("Stopping task list due to persistence condition failure.", tag.Error(err), tag.Dynamic("id", c.db.id), tag.Dynamic("range-id", c.db.rangeID), tag.Dynamic("time", time.Now()))
 		c.Stop()
 		if c.taskListKind == types.TaskListKindSticky {
 			// TODO: we don't see this error in our logs, we might be able to remove this error
