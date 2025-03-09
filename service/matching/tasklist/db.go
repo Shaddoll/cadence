@@ -129,12 +129,13 @@ func (db *taskListDB) RenewLease() (taskListState, error) {
 	db.rangeID = resp.TaskListInfo.RangeID
 	db.ackLevel = resp.TaskListInfo.AckLevel
 	db.partitionConfig = resp.TaskListInfo.AdaptivePartitionConfig
-	db.logger.Error("renew lease success",
+	db.logger.Info("renew lease success",
 		tag.TaskType(db.taskType),
 		tag.WorkflowDomainID(db.domainID),
 		tag.WorkflowTaskListName(db.taskListName),
 		tag.Dynamic("uuid", db.id),
 		tag.Dynamic("range-id", db.rangeID),
+		tag.Dynamic("last-updated", resp.TaskListInfo.LastUpdated),
 	)
 	return taskListState{rangeID: db.rangeID, ackLevel: resp.TaskListInfo.AckLevel}, nil
 }
