@@ -405,7 +405,8 @@ func (r *ratelimiter) Wait(ctx context.Context) (err error) {
 	defer timer.Stop()
 	select {
 	case <-ctx.Done():
-		return fmt.Errorf("delayed context: %w, delay: %v", ctx.Err(), delay)
+		deadline, _ := ctx.Deadline()
+		return fmt.Errorf("delayed context: %w, delay: %v, now: %v, deadline: %v", ctx.Err(), delay, now, deadline)
 	case <-timer.Chan():
 		return nil
 	}
