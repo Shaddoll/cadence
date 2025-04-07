@@ -55,6 +55,7 @@ import (
 	"github.com/uber/cadence/service/history/failover"
 	"github.com/uber/cadence/service/history/lookup"
 	"github.com/uber/cadence/service/history/queue"
+	"github.com/uber/cadence/service/history/queuev2"
 	"github.com/uber/cadence/service/history/replication"
 	"github.com/uber/cadence/service/history/resource"
 	"github.com/uber/cadence/service/history/shard"
@@ -225,7 +226,7 @@ func (h *handlerImpl) CreateEngine(
 		h.queueTaskProcessor,
 		h.failoverCoordinator,
 		h.workflowIDCache,
-		queue.NewProcessorFactory(),
+		queuev2.NewProcessorFactory(),
 	)
 }
 

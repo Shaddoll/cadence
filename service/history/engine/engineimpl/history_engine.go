@@ -63,6 +63,8 @@ import (
 	"github.com/uber/cadence/service/history/workflow"
 	"github.com/uber/cadence/service/history/workflowcache"
 	warchiver "github.com/uber/cadence/service/worker/archiver"
+
+	_ "github.com/uber/cadence/service/history/queuev2"
 )
 
 const (
