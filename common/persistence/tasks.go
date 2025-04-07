@@ -24,6 +24,7 @@ package persistence
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/uber/cadence/common/constants"
@@ -33,6 +34,7 @@ import (
 // Task is the generic interface for workflow tasks
 type Task interface {
 	GetTaskCategory() HistoryTaskCategory
+	GetTaskKey() HistoryTaskKey
 	GetTaskType() int
 	GetDomainID() string
 	GetWorkflowID() string
@@ -48,6 +50,13 @@ type Task interface {
 	ToTimerTaskInfo() (*TimerTaskInfo, error)
 	ToInternalReplicationTaskInfo() (*types.ReplicationTaskInfo, error)
 }
+
+var (
+	MaxHistoryTaskKey = HistoryTaskKey{
+		scheduledTime: time.Unix(0, math.MaxInt64),
+		taskID:        math.MaxInt64,
+	}
+)
 
 type (
 	HistoryTaskKey struct {
@@ -280,6 +289,40 @@ func (a HistoryTaskKey) GetScheduledTime() time.Time {
 	return a.scheduledTime
 }
 
+func (k HistoryTaskKey) Compare(other HistoryTaskKey) int {
+	if k.scheduledTime.Before(other.scheduledTime) {
+		return -1
+	} else if k.scheduledTime.After(other.scheduledTime) {
+		return 1
+	}
+	if k.taskID < other.taskID {
+		return -1
+	} else if k.taskID > other.taskID {
+		return 1
+	}
+	return 0
+}
+
+func (k HistoryTaskKey) Next() HistoryTaskKey {
+	if k.taskID == math.MaxInt64 {
+		return HistoryTaskKey{
+			scheduledTime: k.scheduledTime.Add(time.Nanosecond),
+			taskID:        0,
+		}
+	}
+	return HistoryTaskKey{
+		scheduledTime: k.scheduledTime,
+		taskID:        k.taskID + 1,
+	}
+}
+
+func MinHistoryTaskKey(a, b HistoryTaskKey) HistoryTaskKey {
+	if a.Compare(b) < 0 {
+		return a
+	}
+	return b
+}
+
 func (a *WorkflowIdentifier) GetDomainID() string {
 	return a.DomainID
 }
@@ -339,6 +382,12 @@ func (a *ActivityTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTransfer
 }
 
+func (a *ActivityTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: a.TaskID,
+	}
+}
+
 func (a *ActivityTask) ByteSize() uint64 {
 	return a.WorkflowIdentifier.ByteSize() + a.TaskData.ByteSize() + uint64(len(a.TargetDomainID)) + uint64(len(a.TaskList)) + 8
 }
@@ -373,6 +422,12 @@ func (d *DecisionTask) GetTaskType() int {
 
 func (d *DecisionTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTransfer
+}
+
+func (d *DecisionTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: d.TaskID,
+	}
 }
 
 func (d *DecisionTask) ByteSize() uint64 {
@@ -411,6 +466,12 @@ func (a *RecordWorkflowStartedTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTransfer
 }
 
+func (a *RecordWorkflowStartedTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: a.TaskID,
+	}
+}
+
 func (a *RecordWorkflowStartedTask) ByteSize() uint64 {
 	return a.WorkflowIdentifier.ByteSize() + a.TaskData.ByteSize()
 }
@@ -442,6 +503,12 @@ func (a *ResetWorkflowTask) GetTaskType() int {
 
 func (a *ResetWorkflowTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTransfer
+}
+
+func (a *ResetWorkflowTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: a.TaskID,
+	}
 }
 
 func (a *ResetWorkflowTask) ByteSize() uint64 {
@@ -477,6 +544,12 @@ func (a *CloseExecutionTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTransfer
 }
 
+func (a *CloseExecutionTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: a.TaskID,
+	}
+}
+
 func (a *CloseExecutionTask) ByteSize() uint64 {
 	return a.WorkflowIdentifier.ByteSize() + a.TaskData.ByteSize()
 }
@@ -510,6 +583,13 @@ func (a *DeleteHistoryEventTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTimer
 }
 
+func (a *DeleteHistoryEventTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		scheduledTime: a.VisibilityTimestamp,
+		taskID:        a.TaskID,
+	}
+}
+
 func (a *DeleteHistoryEventTask) ByteSize() uint64 {
 	return a.WorkflowIdentifier.ByteSize() + a.TaskData.ByteSize()
 }
@@ -541,6 +621,13 @@ func (d *DecisionTimeoutTask) GetTaskType() int {
 
 func (d *DecisionTimeoutTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTimer
+}
+
+func (d *DecisionTimeoutTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		scheduledTime: d.VisibilityTimestamp,
+		taskID:        d.TaskID,
+	}
 }
 
 func (d *DecisionTimeoutTask) ByteSize() uint64 {
@@ -579,6 +666,13 @@ func (a *ActivityTimeoutTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTimer
 }
 
+func (a *ActivityTimeoutTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		scheduledTime: a.VisibilityTimestamp,
+		taskID:        a.TaskID,
+	}
+}
+
 func (a *ActivityTimeoutTask) ByteSize() uint64 {
 	return a.WorkflowIdentifier.ByteSize() + a.TaskData.ByteSize() + 8 + 8 + 8
 }
@@ -615,6 +709,13 @@ func (u *UserTimerTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTimer
 }
 
+func (u *UserTimerTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		scheduledTime: u.VisibilityTimestamp,
+		taskID:        u.TaskID,
+	}
+}
+
 func (u *UserTimerTask) ByteSize() uint64 {
 	return u.WorkflowIdentifier.ByteSize() + u.TaskData.ByteSize() + 8
 }
@@ -647,6 +748,13 @@ func (r *ActivityRetryTimerTask) GetTaskType() int {
 
 func (r *ActivityRetryTimerTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTimer
+}
+
+func (r *ActivityRetryTimerTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		scheduledTime: r.VisibilityTimestamp,
+		taskID:        r.TaskID,
+	}
 }
 
 func (r *ActivityRetryTimerTask) ByteSize() uint64 {
@@ -684,6 +792,13 @@ func (r *WorkflowBackoffTimerTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTimer
 }
 
+func (r *WorkflowBackoffTimerTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		scheduledTime: r.VisibilityTimestamp,
+		taskID:        r.TaskID,
+	}
+}
+
 func (r *WorkflowBackoffTimerTask) ByteSize() uint64 {
 	return r.WorkflowIdentifier.ByteSize() + r.TaskData.ByteSize() + 8
 }
@@ -718,6 +833,13 @@ func (u *WorkflowTimeoutTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTimer
 }
 
+func (u *WorkflowTimeoutTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		scheduledTime: u.VisibilityTimestamp,
+		taskID:        u.TaskID,
+	}
+}
+
 func (u *WorkflowTimeoutTask) ByteSize() uint64 {
 	return u.WorkflowIdentifier.ByteSize() + u.TaskData.ByteSize()
 }
@@ -749,6 +871,12 @@ func (u *CancelExecutionTask) GetTaskType() int {
 
 func (u *CancelExecutionTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTransfer
+}
+
+func (u *CancelExecutionTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: u.TaskID,
+	}
 }
 
 func (u *CancelExecutionTask) ByteSize() uint64 {
@@ -789,6 +917,12 @@ func (u *SignalExecutionTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTransfer
 }
 
+func (u *SignalExecutionTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: u.TaskID,
+	}
+}
+
 func (u *SignalExecutionTask) ByteSize() uint64 {
 	return u.WorkflowIdentifier.ByteSize() + u.TaskData.ByteSize() + uint64(len(u.TargetDomainID)) + uint64(len(u.TargetWorkflowID)) + uint64(len(u.TargetRunID)) + 8 + 1
 }
@@ -827,6 +961,12 @@ func (u *RecordChildExecutionCompletedTask) GetTaskCategory() HistoryTaskCategor
 	return HistoryTaskCategoryTransfer
 }
 
+func (u *RecordChildExecutionCompletedTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: u.TaskID,
+	}
+}
+
 func (u *RecordChildExecutionCompletedTask) ByteSize() uint64 {
 	return u.WorkflowIdentifier.ByteSize() + u.TaskData.ByteSize() + uint64(len(u.TargetDomainID)) + uint64(len(u.TargetWorkflowID)) + uint64(len(u.TargetRunID))
 }
@@ -857,6 +997,12 @@ func (u *RecordChildExecutionCompletedTask) ToInternalReplicationTaskInfo() (*ty
 // GetType returns the type of the upsert search attributes transfer task
 func (u *UpsertWorkflowSearchAttributesTask) GetTaskType() int {
 	return TransferTaskTypeUpsertWorkflowSearchAttributes
+}
+
+func (u *UpsertWorkflowSearchAttributesTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: u.TaskID,
+	}
 }
 
 func (u *UpsertWorkflowSearchAttributesTask) GetTaskCategory() HistoryTaskCategory {
@@ -896,6 +1042,12 @@ func (u *StartChildExecutionTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTransfer
 }
 
+func (u *StartChildExecutionTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: u.TaskID,
+	}
+}
+
 func (u *StartChildExecutionTask) ByteSize() uint64 {
 	return u.WorkflowIdentifier.ByteSize() + u.TaskData.ByteSize() + uint64(len(u.TargetDomainID)) + uint64(len(u.TargetWorkflowID)) + 8
 }
@@ -932,6 +1084,12 @@ func (u *RecordWorkflowClosedTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryTransfer
 }
 
+func (u *RecordWorkflowClosedTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: u.TaskID,
+	}
+}
+
 func (u *RecordWorkflowClosedTask) ByteSize() uint64 {
 	return u.WorkflowIdentifier.ByteSize() + u.TaskData.ByteSize()
 }
@@ -963,6 +1121,12 @@ func (a *HistoryReplicationTask) GetTaskType() int {
 
 func (a *HistoryReplicationTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryReplication
+}
+
+func (a *HistoryReplicationTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: a.TaskID,
+	}
 }
 
 func (a *HistoryReplicationTask) ByteSize() uint64 {
@@ -1000,6 +1164,12 @@ func (a *SyncActivityTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryReplication
 }
 
+func (a *SyncActivityTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: a.TaskID,
+	}
+}
+
 func (a *SyncActivityTask) ByteSize() uint64 {
 	return a.WorkflowIdentifier.ByteSize() + a.TaskData.ByteSize() + 8
 }
@@ -1033,6 +1203,12 @@ func (a *FailoverMarkerTask) GetTaskType() int {
 
 func (a *FailoverMarkerTask) GetTaskCategory() HistoryTaskCategory {
 	return HistoryTaskCategoryReplication
+}
+
+func (a *FailoverMarkerTask) GetTaskKey() HistoryTaskKey {
+	return HistoryTaskKey{
+		taskID: a.TaskID,
+	}
 }
 
 func (a *FailoverMarkerTask) ByteSize() uint64 {
