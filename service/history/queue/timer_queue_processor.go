@@ -425,6 +425,14 @@ func (t *timerQueueProcessor) completeTimerLoop() {
 				}
 
 				t.logger.Error("Failed to complete timer task", tag.Error(err))
+				if errors.Is(err, errProcessorShutdown) {
+					select {
+					case <-t.shutdownChan:
+						t.logger.Info("Timer queue processor shutdown triggered during complete timer task")
+					default:
+						t.logger.Info("Timer queue processor shutdown triggered during complete timer task, but shutdown channel is not closed")
+					}
+				}
 				var errShardClosed *shard.ErrShardClosed
 				if errors.As(err, &errShardClosed) {
 					if !t.shard.GetConfig().QueueProcessorEnableGracefulSyncShutdown() {
@@ -458,6 +466,7 @@ func (t *timerQueueProcessor) completeTimer(ctx context.Context) error {
 	newAckLevel := maximumTimerTaskKey
 	actionResult, err := t.HandleAction(ctx, t.currentClusterName, NewGetStateAction())
 	if err != nil {
+		t.logger.Error("complete timer task failed to handle action", tag.ClusterName(t.currentClusterName), tag.Error(err))
 		return err
 	}
 	for _, queueState := range actionResult.GetStateActionResult.States {
@@ -467,6 +476,7 @@ func (t *timerQueueProcessor) completeTimer(ctx context.Context) error {
 	for standbyClusterName := range t.standbyQueueProcessors {
 		actionResult, err := t.HandleAction(ctx, standbyClusterName, NewGetStateAction())
 		if err != nil {
+			t.logger.Error("complete timer task failed to handle action", tag.ClusterName(standbyClusterName), tag.Error(err))
 			return err
 		}
 		for _, queueState := range actionResult.GetStateActionResult.States {

@@ -384,6 +384,14 @@ func (t *transferQueueProcessor) completeTransferLoop() {
 				}
 
 				t.logger.Error("Failed to complete transfer task", tag.Error(err))
+				if errors.Is(err, errProcessorShutdown) {
+					select {
+					case <-t.shutdownChan:
+						t.logger.Info("Transfer queue processor shutdown triggered during complete transfer task")
+					default:
+						t.logger.Info("Transfer queue processor shutdown triggered during complete transfer task, but shutdown channel is not closed")
+					}
+				}
 				var errShardClosed *shard.ErrShardClosed
 				if errors.As(err, &errShardClosed) {
 					// shard closed, trigger shutdown and bail out
@@ -417,6 +425,7 @@ func (t *transferQueueProcessor) completeTransfer() error {
 	newAckLevel := maximumTransferTaskKey
 	actionResult, err := t.HandleAction(context.Background(), t.currentClusterName, NewGetStateAction())
 	if err != nil {
+		t.logger.Error("complete transfer task failed to handle action", tag.ClusterName(t.currentClusterName), tag.Error(err))
 		return err
 	}
 	for _, queueState := range actionResult.GetStateActionResult.States {
@@ -426,6 +435,7 @@ func (t *transferQueueProcessor) completeTransfer() error {
 	for standbyClusterName := range t.standbyQueueProcessors {
 		actionResult, err := t.HandleAction(context.Background(), standbyClusterName, NewGetStateAction())
 		if err != nil {
+			t.logger.Error("complete transfer task failed to handle action", tag.ClusterName(standbyClusterName), tag.Error(err))
 			return err
 		}
 		for _, queueState := range actionResult.GetStateActionResult.States {
