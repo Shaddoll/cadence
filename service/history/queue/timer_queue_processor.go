@@ -187,6 +187,8 @@ func (t *timerQueueProcessor) Stop() {
 	}
 
 	if !t.shard.GetConfig().QueueProcessorEnableGracefulSyncShutdown() {
+		t.logger.Info("Shutting down timer queue processor non-gracefully", tag.LifeCycleStopping)
+		defer t.logger.Info("Shutting down timer queue processor non-gracefully", tag.LifeCycleStopped)
 		t.activeQueueProcessor.Stop()
 		// stop active executor after queue processor
 		t.activeTaskExecutor.Stop()
@@ -204,6 +206,8 @@ func (t *timerQueueProcessor) Stop() {
 		return
 	}
 
+	t.logger.Info("Shutting down timer queue processor gracefully", tag.LifeCycleStopping)
+	defer t.logger.Info("Shutting down timer queue processor gracefully", tag.LifeCycleStopped)
 	// close the shutdown channel first so processor pumps drains tasks
 	// and then stop the processors
 	close(t.shutdownChan)
