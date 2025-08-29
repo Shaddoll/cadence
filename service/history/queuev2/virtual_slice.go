@@ -238,6 +238,7 @@ func (s *virtualSliceImpl) TrySplitByTaskKey(taskKey persistence.HistoryTaskKey)
 		queueReader:        s.queueReader,
 		pendingTaskTracker: leftTracker,
 		progress:           leftProgress,
+		logger:             s.logger,
 	}
 
 	rightSlice := &virtualSliceImpl{
@@ -246,6 +247,7 @@ func (s *virtualSliceImpl) TrySplitByTaskKey(taskKey persistence.HistoryTaskKey)
 		queueReader:        s.queueReader,
 		pendingTaskTracker: rightTracker,
 		progress:           rightProgress,
+		logger:             s.logger,
 	}
 
 	return leftSlice, rightSlice, true
@@ -278,6 +280,7 @@ func (s *virtualSliceImpl) TrySplitByPredicate(predicate Predicate) (VirtualSlic
 		queueReader:        s.queueReader,
 		pendingTaskTracker: passTracker,
 		progress:           passProgress,
+		logger:             s.logger,
 	}
 	failSlice := &virtualSliceImpl{
 		state:              failState,
@@ -285,6 +288,7 @@ func (s *virtualSliceImpl) TrySplitByPredicate(predicate Predicate) (VirtualSlic
 		queueReader:        s.queueReader,
 		pendingTaskTracker: failTracker,
 		progress:           failProgress,
+		logger:             s.logger,
 	}
 	return passSlice, failSlice, true
 }
@@ -329,6 +333,7 @@ func mergeVirtualSlicesByRange(left, right *virtualSliceImpl) VirtualSlice {
 		queueReader:        left.queueReader,
 		pendingTaskTracker: pendingTaskTracker,
 		progress:           mergedProgress,
+		logger:             left.logger,
 	}
 }
 
@@ -520,6 +525,7 @@ func mergeVirtualSlicesByPredicate(this, that *virtualSliceImpl) VirtualSlice {
 		queueReader:        this.queueReader,
 		pendingTaskTracker: pendingTaskTracker,
 		progress:           mergedProgress,
+		logger:             this.logger,
 	}
 }
 
