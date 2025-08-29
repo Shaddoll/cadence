@@ -154,7 +154,11 @@ func (s *virtualSliceImpl) PendingTaskStats() PendingTaskStats {
 
 func (s *virtualSliceImpl) UpdateAndGetState() VirtualSliceState {
 	prunedCount := s.pendingTaskTracker.PruneAckedTasks()
-	s.logger.Debug("pruned acked tasks", tag.Counter(prunedCount), tag.Dynamic("inclusiveMinTaskKey", s.state.Range.InclusiveMinTaskKey), tag.Dynamic("exclusiveMaxTaskKey", s.state.Range.ExclusiveMaxTaskKey))
+	nextTaskKey := s.state.Range.ExclusiveMaxTaskKey
+	if len(s.progress) > 0 {
+		nextTaskKey = s.progress[0].NextTaskKey
+	}
+	s.logger.Debug("pruned acked tasks", tag.Counter(prunedCount), tag.Dynamic("inclusiveMinTaskKey", s.state.Range.InclusiveMinTaskKey), tag.Dynamic("exclusiveMaxTaskKey", s.state.Range.ExclusiveMaxTaskKey), tag.Dynamic("nextTaskKey", nextTaskKey))
 	minPendingTaskKey, ok := s.pendingTaskTracker.GetMinimumTaskKey()
 	if !ok {
 		if len(s.progress) > 0 { // no pending tasks, and there are more tasks to read

@@ -111,6 +111,7 @@ func newQueueBase(
 	if err != nil {
 		logger.Fatal("Failed to get queue state, probably task category is not supported", tag.Error(err), tag.Dynamic("category", category))
 	}
+	logger.Info("loading queue state", tag.Dynamic("queue-state", persistenceQueueState))
 	queueState := FromPersistenceQueueState(persistenceQueueState)
 	exclusiveAckLevel, _ := getExclusiveAckLevelAndMaxQueueIDFromQueueState(queueState)
 
