@@ -26,6 +26,8 @@ package queuev2
 import (
 	"context"
 
+	"github.com/uber/cadence/common/log"
+	"github.com/uber/cadence/common/log/tag"
 	"github.com/uber/cadence/common/persistence"
 	"github.com/uber/cadence/service/history/task"
 )
@@ -54,6 +56,7 @@ type (
 		taskInitializer    task.Initializer
 		queueReader        QueueReader
 		pendingTaskTracker PendingTaskTracker
+		logger             log.Logger
 
 		// progress tracks the read progress of the slice, sorted by the inclusive min task key of the range, ranges are not overlapping
 		// For a virtual slice, the progress is a task key pointing to the next task to read and the next page token
@@ -69,12 +72,14 @@ func NewVirtualSlice(
 	taskInitializer task.Initializer,
 	queueReader QueueReader,
 	pendingTaskTracker PendingTaskTracker,
+	logger log.Logger,
 ) VirtualSlice {
 	return &virtualSliceImpl{
 		state:              state,
 		taskInitializer:    taskInitializer,
 		queueReader:        queueReader,
 		pendingTaskTracker: pendingTaskTracker,
+		logger:             logger,
 		progress: []*GetTaskProgress{
 			{
 				Range:         state.Range,
@@ -148,7 +153,8 @@ func (s *virtualSliceImpl) PendingTaskStats() PendingTaskStats {
 }
 
 func (s *virtualSliceImpl) UpdateAndGetState() VirtualSliceState {
-	s.pendingTaskTracker.PruneAckedTasks()
+	prunedCount := s.pendingTaskTracker.PruneAckedTasks()
+	s.logger.Debug("pruned acked tasks", tag.Counter(prunedCount), tag.Dynamic("inclusiveMinTaskKey", s.state.Range.InclusiveMinTaskKey), tag.Dynamic("exclusiveMaxTaskKey", s.state.Range.ExclusiveMaxTaskKey))
 	minPendingTaskKey, ok := s.pendingTaskTracker.GetMinimumTaskKey()
 	if !ok {
 		if len(s.progress) > 0 { // no pending tasks, and there are more tasks to read
