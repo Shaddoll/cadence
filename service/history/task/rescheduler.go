@@ -148,6 +148,7 @@ func (r *reschedulerImpl) RescheduleDomains(
 			}
 			items = append(items, rescheduled)
 		}
+		r.logger.Info("Reschedule tasks for domain", tag.WorkflowDomainID(key.DomainID), tag.Counter(len(items)))
 		r.pqMap[key] = r.newPriorityQueue(items)
 	}
 
@@ -179,6 +180,7 @@ func (r *reschedulerImpl) rescheduleLoop() {
 			r.drain()
 			return
 		case <-r.timerGate.Chan():
+			r.logger.Info("Reschedule tasks")
 			r.reschedule()
 		case <-cleanupTimer.Chan():
 			r.cleanupPQ()
