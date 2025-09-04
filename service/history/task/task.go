@@ -473,10 +473,7 @@ func (t *taskImpl) shouldResubmitOnNack(err error) bool {
 func (t *taskImpl) backoffDuration(attempt int) time.Duration {
 	// TODO: we might need to consider using the same backoff policy for active and standby tasks,
 	// but we keep them separate for now so that we can compare metrics between history queue v1 and v2
-	if t.isPreviousExecutorActive {
-		return activeTaskRedispatchPolicy.ComputeNextDelay(0, attempt)
-	}
-	return standbyTaskRedispatchPolicy.ComputeNextDelay(0, attempt)
+	return activeTaskRedispatchPolicy.ComputeNextDelay(0, attempt)
 }
 
 func logEvent(
