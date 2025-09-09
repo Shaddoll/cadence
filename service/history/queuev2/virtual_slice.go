@@ -159,6 +159,14 @@ func (s *virtualSliceImpl) UpdateAndGetState() VirtualSliceState {
 		nextTaskKey = s.progress[0].NextTaskKey
 	}
 	s.logger.Debug("pruned acked tasks", tag.Counter(prunedCount), tag.Dynamic("inclusiveMinTaskKey", s.state.Range.InclusiveMinTaskKey), tag.Dynamic("exclusiveMaxTaskKey", s.state.Range.ExclusiveMaxTaskKey), tag.Dynamic("nextTaskKey", nextTaskKey))
+	if prunedCount == 0 && s.logger.DebugOn() {
+		taskMap := s.pendingTaskTracker.GetTasks()
+		c := len(taskMap)
+		s.logger.Debug("pending task count", tag.Counter(c))
+		for taskKey, task := range taskMap {
+			s.logger.Debug("pending task", tag.Dynamic("taskKey", taskKey), tag.Dynamic("task-state", task.State()), tag.Counter(c))
+		}
+	}
 	minPendingTaskKey, ok := s.pendingTaskTracker.GetMinimumTaskKey()
 	if !ok {
 		if len(s.progress) > 0 { // no pending tasks, and there are more tasks to read
