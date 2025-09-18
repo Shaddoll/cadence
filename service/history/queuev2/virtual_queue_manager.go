@@ -96,7 +96,7 @@ func NewVirtualQueueManager(
 	for queueID, states := range virtualQueueStates {
 		virtualSlices := make([]VirtualSlice, len(states))
 		for i, state := range states {
-			virtualSlices[i] = NewVirtualSlice(state, taskInitializer, queueReader, NewPendingTaskTracker(), logger)
+			virtualSlices[i] = NewVirtualSlice(state, taskInitializer, queueReader, NewPendingTaskTracker(), logger.WithTags(tag.VirtualQueueID(queueID)))
 		}
 		var opts *VirtualQueueOptions
 		if queueID == rootQueueID {

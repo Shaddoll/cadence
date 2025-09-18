@@ -267,7 +267,7 @@ func (q *queueBase) processNewTasks() bool {
 	}
 	q.newVirtualSliceState = remainingVirtualSliceState
 
-	newVirtualSlice := NewVirtualSlice(newVirtualSliceState, q.taskInitializer, q.queueReader, NewPendingTaskTracker(), q.logger)
+	newVirtualSlice := NewVirtualSlice(newVirtualSliceState, q.taskInitializer, q.queueReader, NewPendingTaskTracker(), q.logger.WithTags(tag.VirtualQueueID(rootQueueID)))
 
 	q.logger.Debug("processing new tasks", tag.Dynamic("inclusiveMinTaskKey", newVirtualSliceState.Range.InclusiveMinTaskKey), tag.Dynamic("exclusiveMaxTaskKey", newVirtualSliceState.Range.ExclusiveMaxTaskKey))
 	q.virtualQueueManager.AddNewVirtualSliceToRootQueue(newVirtualSlice)

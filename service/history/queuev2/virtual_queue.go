@@ -43,6 +43,7 @@ import (
 
 var (
 	taskSchedulerThrottleBackoffInterval = time.Second * 5
+	taskReaderErrorBackoffInterval       = time.Second
 )
 
 type (
@@ -380,12 +381,14 @@ func (q *virtualQueueImpl) loadAndSubmitTasks() {
 		q.logger.Error("unexpected error, virtual queue is not paused when pending task count exceeds max task cout limit", tag.PendingTaskCount(pendingTaskCount), tag.MaxTaskCount(maxTaskCount))
 	}
 	pageSize := min(q.queueOptions.PageSize(), remainingSize)
-	q.logger.Debug("get tasks from virtual queue", tag.PendingTaskCount(pendingTaskCount), tag.MaxTaskCount(maxTaskCount), tag.Counter(pageSize))
+	q.logger.Debug("getting tasks from virtual queue", tag.PendingTaskCount(pendingTaskCount), tag.MaxTaskCount(maxTaskCount), tag.Counter(pageSize))
 	tasks, err := sliceToRead.GetTasks(q.ctx, pageSize)
 	if err != nil {
 		q.logger.Error("Virtual queue failed to get tasks", tag.Error(err))
+		q.pauseController.Pause(taskReaderErrorBackoffInterval)
 		return
 	}
+	q.logger.Debug("got tasks from virtual queue", tag.Counter(len(tasks)))
 
 	q.monitor.SetSlicePendingTaskCount(sliceToRead, sliceToRead.GetPendingTaskCount())
 
