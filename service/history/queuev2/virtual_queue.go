@@ -427,12 +427,16 @@ func (q *virtualQueueImpl) loadAndSubmitTasks() {
 
 	if sliceToRead.HasMoreTasks() {
 		q.notify()
+		q.logger.Debug("found more tasks to read")
 		return
 	}
 
 	q.sliceToRead = q.sliceToRead.Next()
 	if q.sliceToRead != nil {
 		q.notify()
+		q.logger.Debug("found next slice to read")
+	} else {
+		q.logger.Debug("no more slices to read")
 	}
 }
 
@@ -451,6 +455,7 @@ func (q *virtualQueueImpl) resetNextReadSliceLocked() {
 }
 
 func (q *virtualQueueImpl) appendOrMergeSlice(slices *list.List, incomingSlice VirtualSlice) {
+	incomingSlice.SetLogger(q.logger)
 	if slices.Len() == 0 {
 		slices.PushBack(incomingSlice)
 		q.monitor.SetSlicePendingTaskCount(incomingSlice, incomingSlice.GetPendingTaskCount())

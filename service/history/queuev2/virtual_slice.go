@@ -41,6 +41,7 @@ type (
 		GetPendingTaskCount() int
 		Clear()
 		PendingTaskStats() PendingTaskStats
+		SetLogger(log.Logger)
 
 		TrySplitByTaskKey(persistence.HistoryTaskKey) (VirtualSlice, VirtualSlice, bool)
 		TrySplitByPredicate(Predicate) (VirtualSlice, VirtualSlice, bool)
@@ -88,6 +89,10 @@ func NewVirtualSlice(
 			},
 		},
 	}
+}
+
+func (s *virtualSliceImpl) SetLogger(logger log.Logger) {
+	s.logger = logger
 }
 
 func (s *virtualSliceImpl) GetState() VirtualSliceState {
