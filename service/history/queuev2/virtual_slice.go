@@ -157,6 +157,9 @@ func (s *virtualSliceImpl) GetTasks(ctx context.Context, pageSize int) ([]task.T
 }
 
 func (s *virtualSliceImpl) HasMoreTasks() bool {
+	if len(s.progress) > 0 {
+		s.logger.Debug("has more tasks", tag.Dynamic("inclusiveMinTaskKey", s.state.Range.InclusiveMinTaskKey), tag.Dynamic("exclusiveMaxTaskKey", s.state.Range.ExclusiveMaxTaskKey), tag.Dynamic("progress", s.progress[0]))
+	}
 	return len(s.progress) > 0
 }
 
