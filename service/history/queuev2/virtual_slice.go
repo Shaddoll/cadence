@@ -113,6 +113,7 @@ func (s *virtualSliceImpl) Clear() {
 			NextTaskKey:   s.state.Range.InclusiveMinTaskKey,
 		},
 	}
+	s.logger.Debug("cleared virtual slice", tag.Dynamic("inclusiveMinTaskKey", s.state.Range.InclusiveMinTaskKey), tag.Dynamic("exclusiveMaxTaskKey", s.state.Range.ExclusiveMaxTaskKey))
 }
 
 func (s *virtualSliceImpl) GetTasks(ctx context.Context, pageSize int) ([]task.Task, error) {

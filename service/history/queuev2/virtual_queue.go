@@ -26,6 +26,7 @@ package queuev2
 import (
 	"container/list"
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -433,12 +434,19 @@ func (q *virtualQueueImpl) loadAndSubmitTasks() {
 		return
 	}
 
+	originalSliceToRead := q.sliceToRead
 	q.sliceToRead = q.sliceToRead.Next()
 	if q.sliceToRead != nil {
 		q.notify()
 		q.logger.Debug("found next slice to read")
 	} else {
-		q.logger.Debug("no more slices to read")
+		address := fmt.Sprintf("%p", originalSliceToRead)
+		var elemAddresses []string
+		for e := q.virtualSlices.Front(); e != nil; e = e.Next() {
+			elemAddresses = append(elemAddresses, fmt.Sprintf("%p", e))
+		}
+		q.logger.Debug("no more slices to read", tag.Dynamic("lastAddress", address), tag.Dynamic("elemAddresses", elemAddresses),
+			tag.Dynamic("inclusiveMinTaskKey", sliceToRead.GetState().Range.InclusiveMinTaskKey), tag.Dynamic("exclusiveMaxTaskKey", sliceToRead.GetState().Range.ExclusiveMaxTaskKey))
 	}
 }
 
