@@ -142,6 +142,7 @@ func newQueueBase(
 	queueReader := NewQueueReader(
 		shard,
 		category,
+		logger,
 	)
 	monitor := NewMonitor(
 		category,

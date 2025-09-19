@@ -26,6 +26,8 @@ package queuev2
 import (
 	"context"
 
+	"github.com/uber/cadence/common/log"
+	"github.com/uber/cadence/common/log/tag"
 	"github.com/uber/cadence/common/persistence"
 	"github.com/uber/cadence/service/history/shard"
 )
@@ -56,16 +58,19 @@ type (
 	simpleQueueReader struct {
 		shard    shard.Context
 		category persistence.HistoryTaskCategory
+		logger   log.Logger
 	}
 )
 
 func NewQueueReader(
 	shard shard.Context,
 	category persistence.HistoryTaskCategory,
+	logger log.Logger,
 ) QueueReader {
 	return &simpleQueueReader{
 		shard:    shard,
 		category: category,
+		logger:   logger,
 	}
 }
 
@@ -92,6 +97,7 @@ func (r *simpleQueueReader) GetTask(ctx context.Context, req *GetTaskRequest) (*
 	// If there are more tasks to read, set the next task key to the next task key of the last task
 	if len(resp.NextPageToken) != 0 && len(resp.Tasks) > 0 {
 		nextTaskKey = resp.Tasks[len(resp.Tasks)-1].GetTaskKey().Next()
+		r.logger.Debug("more tasks to read", tag.Dynamic("nextTaskKey", nextTaskKey), tag.Dynamic("inclusiveMinTaskKey", req.Progress.InclusiveMinTaskKey), tag.Dynamic("exclusiveMaxTaskKey", req.Progress.ExclusiveMaxTaskKey))
 	}
 
 	return &GetTaskResponse{
