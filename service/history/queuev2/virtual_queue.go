@@ -193,7 +193,7 @@ func (q *virtualQueueImpl) UpdateAndGetState() []VirtualSliceState {
 		next = e.Next()
 		slice := e.Value.(VirtualSlice)
 		state := slice.UpdateAndGetState()
-		if state.IsEmpty() {
+		if state.IsEmpty() && !slice.HasMoreTasks() {
 			q.virtualSlices.Remove(e)
 			q.monitor.RemoveSlice(slice)
 		} else {
