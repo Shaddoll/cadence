@@ -202,8 +202,13 @@ func (t *taskImpl) Execute() error {
 	executionStartTime := t.timeSource.Now()
 	defer func() {
 		t.scope.IncCounter(metrics.TaskRequestsPerDomain)
-		t.scope.RecordTimer(metrics.TaskProcessingLatencyPerDomain, time.Since(executionStartTime))
-		t.scope.ExponentialHistogram(metrics.ExponentialTaskProcessingLatencyPerDomain, time.Since(executionStartTime))
+		processingLatency := time.Since(executionStartTime)
+		t.scope.RecordTimer(metrics.TaskProcessingLatencyPerDomain, processingLatency)
+		t.scope.ExponentialHistogram(metrics.ExponentialTaskProcessingLatencyPerDomain, processingLatency)
+
+		originalTaskListTag := common.GetTaskListTag(t.GetOriginalTaskList(), t.GetOriginalTaskListKind())
+		t.scope.Tagged(originalTaskListTag).IncCounter(metrics.TaskRequestsPerTaskList)
+		t.scope.Tagged(originalTaskListTag).ExponentialHistogram(metrics.ExponentialTaskProcessingLatencyPerTaskList, processingLatency)
 	}()
 	executeResponse, err := t.taskExecutor.Execute(t)
 	t.scope = executeResponse.Scope
@@ -375,13 +380,19 @@ func (t *taskImpl) Ack() {
 	if t.shouldProcessTask {
 		// Record attempt count as duration so timer mean ≈ average attempt count.
 		t.scope.RecordTimer(metrics.TaskAttemptTimerPerDomain, time.Duration(t.attempt))
+
+		latency := time.Since(t.initialSubmitTime)
+		queueLatency := time.Since(t.GetVisibilityTimestamp())
 		// Use IntExponentialHistogram with Mid1To16k buckets (1–64k) for attempt counts
 		t.scope.IntExponentialHistogram(metrics.ExponentialTaskAttemptCountsPerDomain, t.attempt)
-		t.scope.RecordTimer(metrics.TaskLatencyPerDomain, time.Since(t.initialSubmitTime))
-		t.scope.ExponentialHistogram(metrics.ExponentialTaskLatencyPerDomain, time.Since(t.initialSubmitTime))
-		t.scope.RecordTimer(metrics.TaskQueueLatencyPerDomain, time.Since(t.GetVisibilityTimestamp()))
-		t.scope.ExponentialHistogram(metrics.ExponentialTaskQueueLatencyPerDomain, time.Since(t.GetVisibilityTimestamp()))
+		t.scope.RecordTimer(metrics.TaskLatencyPerDomain, latency)
+		t.scope.ExponentialHistogram(metrics.ExponentialTaskLatencyPerDomain, latency)
+		t.scope.RecordTimer(metrics.TaskQueueLatencyPerDomain, queueLatency)
+		t.scope.ExponentialHistogram(metrics.ExponentialTaskQueueLatencyPerDomain, queueLatency)
 
+		originalTaskListTag := common.GetTaskListTag(t.GetOriginalTaskList(), t.GetOriginalTaskListKind())
+		t.scope.Tagged(originalTaskListTag).ExponentialHistogram(metrics.ExponentialTaskLatencyPerTaskList, latency)
+		t.scope.Tagged(originalTaskListTag).ExponentialHistogram(metrics.ExponentialTaskQueueLatencyPerTaskList, queueLatency)
 	}
 
 	if t.eventLogger != nil && t.shouldProcessTask && t.attempt != 0 {
