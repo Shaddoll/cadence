@@ -33,6 +33,7 @@ import (
 	"github.com/uber/cadence/common/log/tag"
 	"github.com/uber/cadence/common/metrics"
 	"github.com/uber/cadence/common/task"
+	"github.com/uber/cadence/common/types"
 	"github.com/uber/cadence/service/history/config"
 )
 
@@ -76,36 +77,94 @@ func NewProcessor(
 			RetryPolicy: common.CreateTaskProcessingRetryPolicy(),
 		},
 	)
-	taskToChannelKeyFn := func(t task.PriorityTask) DomainPriorityKey {
-		var domainID string
-		tt, ok := t.(Task)
-		if ok {
-			domainID = tt.GetDomainID()
-		} else {
-			logger.Error("incorrect task type for task scheduler, this should not happen, there must be a bug in our code")
+	var scheduler task.Scheduler
+	var err error
+	if config.EnableHierarchicalWeightedRoundRobinTaskScheduler() {
+		taskToWeightedKeysFn := func(t task.PriorityTask) []task.WeightedKey[any] {
+			var domainID string
+			tt, ok := t.(Task)
+			if ok {
+				domainID = tt.GetDomainID()
+			} else {
+				logger.Error("incorrect task type for task scheduler, this should not happen, there must be a bug in our code")
+			}
+			key := DomainPriorityKey{
+				DomainID: domainID,
+				Priority: t.Priority(),
+			}
+			domainName, err := domainCache.GetDomainName(domainID)
+			if err != nil {
+				logger.Error("failed to get domain name from cache", tag.Error(err))
+				domainName = ""
+			}
+			if !config.EnableTaskListAwareTaskSchedulerByDomain(domainName) || t.Priority() != highTaskPriority {
+				return []task.WeightedKey[any]{
+					{
+						Key:    key,
+						Weight: getDomainPriorityWeight(logger, config, domainCache, key),
+					},
+				}
+			}
+			taskListKey := tt.GetOriginalTaskList()
+			if tt.GetOriginalTaskListKind() == types.TaskListKindEphemeral {
+				taskListKey = "__ephemeral__"
+			}
+			return []task.WeightedKey[any]{
+				{
+					Key:    key,
+					Weight: getDomainPriorityWeight(logger, config, domainCache, key),
+				},
+				{
+					Key:    taskListKey,
+					Weight: 1,
+				},
+			}
 		}
-		return DomainPriorityKey{
-			DomainID: domainID,
-			Priority: t.Priority(),
+		scheduler, err = task.NewHierarchicalWeightedRoundRobinTaskScheduler(
+			logger,
+			metricsClient,
+			timeSource,
+			taskProcessor,
+			&task.HierarchicalWeightedRoundRobinTaskPoolOptions[any]{
+				BufferSize:           config.TaskSchedulerQueueSize(),
+				TaskToWeightedKeysFn: taskToWeightedKeysFn,
+			},
+		)
+		if err != nil {
+			return nil, err
 		}
-	}
-	channelKeyToWeightFn := func(k DomainPriorityKey) int {
-		return getDomainPriorityWeight(logger, config, domainCache, k)
-	}
-	scheduler, err := task.NewWeightedRoundRobinTaskScheduler(
-		logger,
-		metricsClient,
-		timeSource,
-		taskProcessor,
-		&task.WeightedRoundRobinTaskSchedulerOptions[DomainPriorityKey]{
-			QueueSize:            config.TaskSchedulerQueueSize(),
-			DispatcherCount:      config.TaskSchedulerDispatcherCount(),
-			TaskToChannelKeyFn:   taskToChannelKeyFn,
-			ChannelKeyToWeightFn: channelKeyToWeightFn,
-		},
-	)
-	if err != nil {
-		return nil, err
+	} else {
+		taskToChannelKeyFn := func(t task.PriorityTask) DomainPriorityKey {
+			var domainID string
+			tt, ok := t.(Task)
+			if ok {
+				domainID = tt.GetDomainID()
+			} else {
+				logger.Error("incorrect task type for task scheduler, this should not happen, there must be a bug in our code")
+			}
+			return DomainPriorityKey{
+				DomainID: domainID,
+				Priority: t.Priority(),
+			}
+		}
+		channelKeyToWeightFn := func(k DomainPriorityKey) int {
+			return getDomainPriorityWeight(logger, config, domainCache, k)
+		}
+		scheduler, err = task.NewWeightedRoundRobinTaskScheduler(
+			logger,
+			metricsClient,
+			timeSource,
+			taskProcessor,
+			&task.WeightedRoundRobinTaskSchedulerOptions[DomainPriorityKey]{
+				QueueSize:            config.TaskSchedulerQueueSize(),
+				DispatcherCount:      config.TaskSchedulerDispatcherCount(),
+				TaskToChannelKeyFn:   taskToChannelKeyFn,
+				ChannelKeyToWeightFn: channelKeyToWeightFn,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &processorImpl{
 		priorityAssigner: priorityAssigner,

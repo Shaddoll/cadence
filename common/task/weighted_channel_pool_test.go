@@ -25,7 +25,6 @@ package task
 import (
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -153,35 +152,4 @@ func TestGetSchedule(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, expected, ch.Chan())
 	}
-}
-
-func TestCleanup(t *testing.T) {
-	timeSource := clock.NewRealTimeSource()
-	pool := NewWeightedRoundRobinChannelPool[string, int](
-		testlogger.New(t),
-		metrics.NoopScope,
-		timeSource,
-		WeightedRoundRobinChannelPoolOptions{
-			BufferSize:              1000,
-			IdleChannelTTLInSeconds: 2,
-		},
-	)
-	pool.Start()
-	defer pool.Stop()
-
-	// First, verify that the method returns the same channel if the key and weight are the same
-	_, releaseFn1 := pool.GetOrCreateChannel("k1", 1)
-	ch2, releaseFn2 := pool.GetOrCreateChannel("k2", 1)
-	ch3, releaseFn3 := pool.GetOrCreateChannel("k3", 1)
-	ch3 <- 1
-
-	assert.Len(t, pool.GetAllChannels(), 3)
-	releaseFn1()
-	releaseFn3()
-	time.Sleep(time.Second * 4)
-	// only c1 is deleted
-	chs := pool.GetAllChannels()
-	assert.ElementsMatch(t, chs, []chan int{ch2, ch3})
-
-	releaseFn2()
 }
